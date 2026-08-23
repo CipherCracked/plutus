@@ -6,5 +6,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
-Also refer @../../CLAUDE.md and the project level claude config is at @../.claude/
 <!-- END:nextjs-agent-rules -->
