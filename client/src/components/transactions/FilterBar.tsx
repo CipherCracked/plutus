@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useTransactionStore, type TransactionFilters } from "@/stores/transaction-store"
+import { useTransactionStore } from "@/stores/transaction-store"
 import { clsx } from "clsx"
 
 const STATUS_OPTIONS = ["SUCCESS", "FAILED", "PENDING"]

@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useRewardsStore } from "@/stores/rewards-store"
 import { redeemReward } from "@/lib/api"
 import { clsx } from "clsx"

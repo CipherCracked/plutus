@@ -70,8 +70,6 @@ const COLUMNS: Column[] = [
   },
 ]
 
-const TOTAL_WIDTH = COLUMNS.reduce((sum, c) => sum + c.width, 0)
-
 function SortIcon({
   active,
   order,
