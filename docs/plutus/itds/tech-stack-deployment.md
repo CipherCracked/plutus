@@ -9,8 +9,8 @@
 | **Option 6** | Railway — similar to Render, supports PostgreSQL. |
 | **Option 7** | Fly.io — excellent performance, slightly more complex setup. |
 | **Option 8** | Self-host locally + demo video — fallback if all hosted options fail. |
-| **Option 9** | Supabase — generous free tier, familiar to the team, Postgres already configured with connection pooling. |
-| **Option 10** | **Neon** — serverless PostgreSQL, free tier sufficient for demo, integrates with Render. |
+| **Option 9** | **Supabase** — generous free tier, familiar to the team, Postgres already configured with connection pooling. |
+| **Option 10** | Neon — serverless PostgreSQL, free tier sufficient for demo, integrates with Render. |
 | **Option 11** | Railway Postgres — bundled with backend hosting. | **REASONING** |
 | **Frontend** | Next.js is explicitly "preferred" by the assignment. The App Router (Next.js 13+) gives Server Components for data fetching, keeping the 10k-row table data out of the client bundle. File-based API routes also provide a fallback if hosting the backend separately proves difficult. |
 | **Backend** | FastAPI is the stronger choice: Pydantic models give automatic request validation (critical for the redeem endpoint), async support handles concurrent table queries, and auto-generated OpenAPI docs make the API self-documenting. Flask would work but lacks these conveniences. |
