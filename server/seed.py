@@ -248,12 +248,12 @@ def seed_transactions(conn):
         clean_rows.append((
             txn_id,
             ts,
-            txn.get("merchant", "Unknown"),
-            txn.get("category", "Uncategorized"),
+            txn.get("merchant") or "Unknown",
+            txn.get("category") or "Uncategorized",
             amount,
-            txn.get("currency", "INR"),
+            txn.get("currency") or "INR",
             status,
-            txn.get("payment_method", "Unknown"),
+            txn.get("payment_method") or "Unknown",
             coins,
             user_id,
         ))

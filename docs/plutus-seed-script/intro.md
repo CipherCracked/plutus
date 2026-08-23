@@ -11,6 +11,7 @@ A seed script must load ~10,000 transactions from `transactions.json` into a Sup
   - **Timestamps**: 4 formats present — ISO datetime strings (7,437 records), epoch milliseconds (1,007), date-only strings (715), and slash-separated DD/MM/YYYY HH:MM:SS (841)
   - **Status**: inconsistent casing — `"SUCCESS"` and `"success"` appear in the same column
   - **Duplicate IDs**: 9,960 unique IDs out of 10,000 records (40 duplicates)
+  - **Null fields**: some records have JSON `null` for fields like `category`, `merchant`, `currency`, or `payment_method`, which would violate NOT NULL constraints on the typed schema
   - **Amount range**: -₹53,652.71 to ₹999,999,999.00 (negative values may represent refunds)
 - The schema (decided in ITD: `postgresql-schema.md`) uses a flat `transactions` table with typed columns
 - Coin earning formula: 1 coin per ₹100 spent, capped at 50 coins per transaction, only for `SUCCESS` status
@@ -66,9 +67,11 @@ How should the seed script handle data quality issues in transactions.json?
 │   └── Parse slash format (DD/MM/YYYY HH:MM:SS) → ISO datetime
 ├── How to normalize inconsistent status casing?
 │   └── Map "success" → "SUCCESS", leave others unchanged
-└── How to handle 40 duplicate transaction IDs?
-    ├── Skip duplicates with a warning log
-    └── OR use INSERT ... ON CONFLICT DO NOTHING (requires PK on id)
+├── How to handle 40 duplicate transaction IDs?
+│   ├── Skip duplicates with a warning log
+│   └── OR use INSERT ... ON CONFLICT DO NOTHING (requires PK on id)
+└── How to handle JSON null fields that violate NOT NULL constraints?
+    └── Coalesce null → default value using `txn.get("field") or "default"`
 
 How should the seed script connect to and manage the Supabase database?
 ├── What connection method to use (psycopg2, asyncpg, SQLAlchemy)?
