@@ -8,7 +8,7 @@ export function Header() {
   return (
     <header className="sharp-sm glass flex items-center justify-between px-4 py-2.5">
       <div className="flex items-center gap-3">
-        <span className="text-xs font-mono tracking-widener text-accent">
+        <span className="text-xs font-mono tracking-wider text-accent">
           PLVTUS
         </span>
       </div>
