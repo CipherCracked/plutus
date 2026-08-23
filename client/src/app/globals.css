@@ -120,3 +120,43 @@ body {
 
 /* Purposeful motion — never decorative */
 .transition-base { transition: 150ms ease-out; }
+
+/* Raw aesthetics scrollbar — sharp, minimal */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Skeleton shimmer — purposeful motion for loading state */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--color-border) 0%,
+    var(--color-surface-hover) 50%,
+    var(--color-border) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Pending status pulse */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.status-pending {
+  animation: pulse 2s ease-in-out infinite;
+}

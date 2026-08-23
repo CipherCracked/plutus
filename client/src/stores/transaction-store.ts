@@ -69,7 +69,7 @@ const INITIAL_SORT: { key: SortKey; order: SortOrder } = {
 export const useTransactionStore = create<TransactionState>((set, get) => ({
   // Data
   transactions: [],
-  isLoading: false,
+  isLoading: true,
   error: null,
   setTransactions: (txns) => set({ transactions: txns }),
   setLoading: (loading) => set({ isLoading: loading }),

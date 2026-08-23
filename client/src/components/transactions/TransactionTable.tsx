@@ -85,6 +85,41 @@ function SortIcon({
   )
 }
 
+function TableHeaderCell({
+  col,
+  sortKey,
+  sortOrder,
+  onSort,
+}: {
+  col: Column
+  sortKey: SortKey
+  sortOrder: "asc" | "desc"
+  onSort: (key: SortKey) => void
+}) {
+  return (
+    <button
+      key={String(col.key)}
+      onClick={() => onSort(col.key as SortKey)}
+      className={clsx(
+        "flex h-full flex-shrink-0 items-center px-3 text-xs font-mono uppercase tracking-wider",
+        "text-text-secondary hover:text-foreground transition-base",
+        sortKey === col.key && "text-accent",
+        {
+          "justify-end": col.align === "right",
+          "justify-center": col.align === "center",
+        },
+      )}
+      style={{ width: col.width }}
+    >
+      {col.label}
+      <SortIcon
+        active={sortKey === col.key}
+        order={sortOrder}
+      />
+    </button>
+  )
+}
+
 export function TransactionTable() {
   const {
     transactions: allTransactions,
@@ -96,6 +131,7 @@ export function TransactionTable() {
     setSelectedTransaction,
     isLoading,
     error,
+    clearFilters,
   } = useTransactionStore()
 
   const transactions = getFiltered()
@@ -116,12 +152,104 @@ export function TransactionTable() {
     }
   }
 
+  // Shared header rendering
+  const renderHeader = () => (
+    <div
+      className="sharp-sm sticky top-0 z-10 flex items-center bg-surface border-b border-border"
+      style={{ height: HEADER_HEIGHT }}
+    >
+      {COLUMNS.map((col) => (
+        <TableHeaderCell
+          key={String(col.key)}
+          col={col}
+          sortKey={sortKey}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+        />
+      ))}
+    </div>
+  )
+
+  // Shared row rendering for the data table
+  const renderRow = (txn: Transaction, offsetY: number) => (
+    <div
+      key={txn.id}
+      className={clsx(
+        "absolute top-0 left-0 flex items-center border-b border-border",
+        "hover:bg-surface-hover cursor-pointer transition-base",
+        selectedTransaction?.id === txn.id && "bg-surface-hover",
+      )}
+      style={{
+        transform: `translateY(${HEADER_HEIGHT + offsetY}px)`,
+        width: "100%",
+        height: `${ROW_HEIGHT}px`,
+      }}
+      onClick={() => setSelectedTransaction(txn)}
+    >
+      {COLUMNS.map((col) => (
+        <div
+          key={`${txn.id}-${String(col.key)}`}
+          className={clsx(
+            "px-3 text-xs font-mono whitespace-nowrap overflow-hidden text-ellipsis",
+            {
+              "text-right": col.align === "right",
+              "text-center": col.align === "center",
+            },
+          )}
+          style={{ width: col.width, flexShrink: 0 }}
+          title={
+            typeof txn[col.key as keyof Transaction] === "string"
+              ? (txn[col.key as keyof Transaction] as string)
+              : undefined
+          }
+        >
+          {col.render
+            ? col.render(txn)
+            : (txn[col.key as keyof Transaction] as string | number)}
+        </div>
+      ))}
+    </div>
+  )
+
+  // Loading state — skeleton rows with shimmer animation
   if (isLoading) {
     return (
-      <div className="sharp-sm glass flex h-full w-full items-center justify-center">
-        <span className="text-xs font-mono text-text-secondary">
-          Loading transactions...
-        </span>
+      <div className="sharp-sm glass h-full w-full flex flex-col">
+        <FilterBar
+          resultCount={0}
+          totalCount={0}
+        />
+        <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
+          <div
+            style={{ height: `${HEADER_HEIGHT + 480}px`, width: "100%" }}
+          >
+            {renderHeader()}
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={`skeleton-${i}`}
+                className="absolute top-0 left-0 flex items-center border-b border-border"
+                style={{
+                  transform: `translateY(${HEADER_HEIGHT + i * ROW_HEIGHT}px)`,
+                  width: "100%",
+                  height: `${ROW_HEIGHT}px`,
+                }}
+              >
+                {COLUMNS.map((col) => (
+                  <div
+                    key={`skeleton-${i}-${col.key}`}
+                    className="skeleton h-2.5"
+                    style={{
+                      width: `${Math.max(col.width - 24, 32)}px`,
+                      marginLeft: col.align === "center" ? "auto" : "12px",
+                      marginRight: col.align === "center" ? "auto" : 0,
+                      flexShrink: 0,
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -129,13 +257,47 @@ export function TransactionTable() {
   if (error) {
     return (
       <div className="sharp-sm glass flex h-full w-full items-center justify-center">
-        <span className="text-xs font-mono text-failed">Error: {error}</span>
+        <span className="text-xs font-mono text-failed">
+          Error loading transactions: {error}
+        </span>
+      </div>
+    )
+  }
+
+  if (!transactions.length) {
+    return (
+      <div className="sharp-sm glass h-full w-full flex flex-col">
+        <FilterBar
+          resultCount={0}
+          totalCount={allTransactions.length}
+        />
+        <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
+          <div style={{ height: `${HEADER_HEIGHT}px`, width: "100%" }}>
+            {renderHeader()}
+          </div>
+          <div className="flex h-full items-center justify-center py-12">
+            <div className="text-center">
+              <span className="block text-3xl font-mono text-text-secondary mb-2">
+                ◻
+              </span>
+              <span className="block text-xs font-mono uppercase tracking-wider text-text-secondary mb-4">
+                No transactions match your filters
+              </span>
+              <button
+                onClick={clearFilters}
+                className="sharp-sm px-3 py-1 text-xs font-mono text-accent hover:text-foreground hover:bg-surface-hover transition-base"
+              >
+                CLEAR FILTERS
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="sharp-sm glass flex h-full w-full flex-col">
+    <div className="sharp-sm glass h-full w-full flex flex-col">
       <FilterBar
         resultCount={transactions.length}
         totalCount={allTransactions.length}
@@ -152,77 +314,12 @@ export function TransactionTable() {
             width: "100%",
           }}
         >
-          {/* Sticky header */}
-          <div
-            className="sharp-sm sticky top-0 z-10 flex items-center bg-surface border-b border-border"
-            style={{ height: HEADER_HEIGHT }}
-          >
-            {COLUMNS.map((col) => (
-              <button
-                key={String(col.key)}
-                onClick={() => handleSort(col.key as SortKey)}
-                className={clsx(
-                  "flex h-full flex-shrink-0 items-center px-3 text-xs font-mono uppercase tracking-wider",
-                  "text-text-secondary hover:text-foreground transition-base",
-                  sortKey === col.key && "text-accent",
-                  {
-                    "justify-end": col.align === "right",
-                    "justify-center": col.align === "center",
-                  },
-                )}
-                style={{ width: col.width }}
-              >
-                {col.label}
-                <SortIcon
-                  active={sortKey === col.key}
-                  order={sortOrder}
-                />
-              </button>
-            ))}
-          </div>
+          {renderHeader()}
 
           {/* Virtual rows */}
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const txn = transactions[virtualRow.index]
-            return (
-              <div
-                key={txn.id}
-                className={clsx(
-                  "absolute top-0 left-0 flex items-center border-b border-border",
-                  "hover:bg-surface-hover cursor-pointer transition-base",
-                  selectedTransaction?.id === txn.id && "bg-surface-hover",
-                )}
-                style={{
-                  transform: `translateY(${HEADER_HEIGHT + virtualRow.start}px)`,
-                  width: "100%",
-                  height: `${virtualRow.size}px`,
-                }}
-                onClick={() => setSelectedTransaction(txn)}
-              >
-                {COLUMNS.map((col) => (
-                  <div
-                    key={`${txn.id}-${String(col.key)}`}
-                    className={clsx(
-                      "px-3 text-xs font-mono whitespace-nowrap overflow-hidden text-ellipsis",
-                      {
-                        "text-right": col.align === "right",
-                        "text-center": col.align === "center",
-                      },
-                    )}
-                    style={{ width: col.width, flexShrink: 0 }}
-                    title={
-                      typeof txn[col.key as keyof Transaction] === "string"
-                        ? (txn[col.key as keyof Transaction] as string)
-                        : undefined
-                    }
-                  >
-                    {col.render
-                      ? col.render(txn)
-                      : (txn[col.key as keyof Transaction] as string | number)}
-                  </div>
-                ))}
-              </div>
-            )
+            return renderRow(txn, virtualRow.start)
           })}
         </div>
       </div>
