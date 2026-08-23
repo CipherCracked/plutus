@@ -8,7 +8,7 @@ A seed script must load ~10,000 transactions from `transactions.json` into a Sup
 
 - The dataset (`transactions.json`, ~2.3MB, 10,000 records) has already been delivered to `plutus/transactions.json`
 - Data quality issues were identified during initial inspection:
-  - **Timestamps**: 3 formats present — ISO datetime strings (e.g. `"2025-10-03T21:03:27Z"`), epoch milliseconds (e.g. `1768265109000`), and date-only strings (e.g. `"2025-07-03"`)
+  - **Timestamps**: 4 formats present — ISO datetime strings (7,437 records), epoch milliseconds (1,007), date-only strings (715), and slash-separated DD/MM/YYYY HH:MM:SS (841)
   - **Status**: inconsistent casing — `"SUCCESS"` and `"success"` appear in the same column
   - **Duplicate IDs**: 9,960 unique IDs out of 10,000 records (40 duplicates)
   - **Amount range**: -₹53,652.71 to ₹999,999,999.00 (negative values may represent refunds)
@@ -59,10 +59,11 @@ A seed script must load ~10,000 transactions from `transactions.json` into a Sup
 
 ```text
 How should the seed script handle data quality issues in transactions.json?
-├── How to normalize timestamps from 3 formats into one column?
+├── How to normalize timestamps from 4 formats into one column?
 │   ├── Parse epoch milliseconds → ISO datetime
 │   ├── Parse date-only strings → timestamp at midnight UTC
-│   └── Parse ISO datetime strings → keep as-is (normalized to UTC)
+│   ├── Parse ISO datetime strings → keep as-is (normalized to UTC)
+│   └── Parse slash format (DD/MM/YYYY HH:MM:SS) → ISO datetime
 ├── How to normalize inconsistent status casing?
 │   └── Map "success" → "SUCCESS", leave others unchanged
 └── How to handle 40 duplicate transaction IDs?
