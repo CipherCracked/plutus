@@ -27,7 +27,7 @@ from psycopg2.extras import execute_values
 # Configuration
 # ---------------------------------------------------------------------------
 
-DATA_FILE = Path(__file__).parent / "transactions.json"
+DATA_FILE = Path(__file__).parent.parent / "transactions.json"
 SCHEMA_FILE = Path(__file__).parent / "schema.sql"
 
 DEFAULT_USER = "plutus_user"
