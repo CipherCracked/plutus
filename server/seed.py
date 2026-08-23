@@ -20,8 +20,14 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import execute_values
+
+# Load .env file (gitignored, never committed).
+# Checks project root first, then server/ directory.
+load_dotenv(Path(__file__).parent.parent / ".env")
+load_dotenv(Path(__file__).parent / ".env")
 
 # ---------------------------------------------------------------------------
 # Configuration
