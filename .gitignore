@@ -40,6 +40,9 @@ coverage/
 *.swp
 *.swo
 
+# Firecrawl research cache
+.firecrawl/
+
 # OS
 .DS_Store
 Thumbs.db

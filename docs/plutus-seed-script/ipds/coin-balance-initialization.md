@@ -45,3 +45,9 @@ For this 24-hour assignment, the dataset is **static** — it comes from `transa
 The coin calculation itself is straightforward: for each transaction with `status = "SUCCESS"`, `coins_earned = LEAST(FLOOR(amount / 100), 50)`. Negative amounts (refunds) earn 0 coins. PENDING and FAILED transactions earn 0 coins. The aggregate balance is `SUM(coins_earned)` across all qualifying transactions.
 
 This decision is tightly coupled to the **ITD: data-quality-normalization.md** (which covers status normalization — only properly normalized "SUCCESS" transactions should earn coins) and the **ITD: postgresql-schema.md** (the `users` table schema for storing the balance).
+
+## Seed Run Results
+
+- **9,960 transactions** loaded (40 duplicates skipped, 0 bad timestamps, 0 bad amounts after null-handling fix)
+- **256,415 coins** total coin balance for the default user
+- **0 errors** — idempotent re-run confirmed (DROP → CREATE → INSERT pattern)
