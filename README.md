@@ -1,6 +1,6 @@
-# Plutus — Credit Card Bill Payment & Rewards
+# Plutus — Credit-Card Bills, Rewards Coins, Spend Insights
 
-A consumer-facing credit-card bill payment and rewards application. Users pay credit-card bills, earn reward coins on payments (1 coin per ₹100 spent, capped per transaction), and view their spending through a transactions dashboard and analytics.
+A consumer app for paying credit-card bills, earning reward coins on payments (1 coin per ₹100 spent, capped at 50 per transaction), and understanding your own spending through a filterable transactions dashboard and spend analytics.
 
 Built as a 24-hour take-home assignment for Digital Alpha Technologies.
 
@@ -9,138 +9,143 @@ Built as a 24-hour take-home assignment for Digital Alpha Technologies.
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 16 (App Router) + React 19 + TypeScript |
-| State | Zustand (transaction, rewards, UI stores) |
-| Data Fetching | SWR (stale-while-revalidate) + native fetch |
-| Virtualization | @tanstack/react-virtual (10k-row table) |
-| Charts | Chart.js 4 + react-chartjs-2 |
-| Backend | Python + FastAPI |
-| Database | PostgreSQL (via Supabase) |
-| Styling | Tailwind CSS v4 (hand-built, no component libs) |
+| Styling | Tailwind CSS v4 — hand-built components, **no component library for the table** |
+| State | Zustand 5 (transactions, rewards, UI stores) |
+| Data fetching | SWR + native fetch |
+| Table rendering | @tanstack/react-virtual + client-side pagination |
+| Charts | Chart.js 4 + react-chartjs-2 (+ datalabels & annotation plugins) |
+| Backend | Python + FastAPI + Pydantic v2 + psycopg2 |
+| Database | PostgreSQL (hosted on Supabase free tier) |
 
 ## Local Setup (< 5 minutes)
 
 ### Prerequisites
 - Node.js 18+
 - Python 3.10+
-- PostgreSQL connection (Supabase free tier or local Postgres)
+- A PostgreSQL database (Supabase free tier works; any Postgres 16+ connection string does)
 
-### 1. Clone and install frontend dependencies
+### 1. Install frontend dependencies
 ```bash
 cd client
 npm install
 ```
 
-### 2. Configure environment
-Create `client/.env.local`:
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-### 3. Configure backend
-Create `.env` at project root:
+### 2. Configure the backend connection
+Create a `.env` file at the **project root** (or in `server/`) — see `server/.env.example`:
 ```
 DATABASE_URL=postgresql://user:pass@host:5432/dbname
 ```
+The frontend needs nothing — `client/src/lib/api.ts` defaults to `http://localhost:8000`; override with `NEXT_PUBLIC_API_URL` in `client/.env.local` if you host the API elsewhere.
 
-### 4. Install Python dependencies
+### 3. Install Python dependencies
 ```bash
 cd server
 pip install -r requirements.txt
 ```
 
-### 5. Seed the database (one command)
+### 4. Seed the database (one command)
 ```bash
-cd server
 python seed.py
 ```
+The dataset (`transactions.json`, 10,000 records) is committed at the repo root — nothing else to download. The script is idempotent: it drops and recreates the schema, then loads the normalized data. Expected output:
 
-### 6. Run both servers
+| Metric | Value |
+|---|---|
+| Records processed | 10,000 |
+| Rows loaded | 9,960 (40 duplicate IDs skipped) |
+| Bad timestamps / amounts | 0 |
+| Default user coin balance | 256,415 |
+| Rewards seeded | 6 |
+
+### 5. Run both servers
 ```bash
-# Terminal 1 — Backend
+# Terminal 1 — backend
 cd server
 uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Terminal 2 — Frontend
+# Terminal 2 — frontend
 cd client
 npm run dev
 ```
 
-Visit http://localhost:3000
+Open http://localhost:3000
 
-## API Endpoints
+## API
+
+Base URL: `http://localhost:8000`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/transactions` | All 10,000 transactions |
-| GET | `/api/balance` | User's coin balance + stats |
-| GET | `/api/rewards` | Rewards catalogue (4–6 items) |
-| POST | `/api/redeem` | Redeem a reward (atomic) |
-| GET | `/api/analytics` | Category breakdown + monthly trend |
+| GET | `/api/transactions` | All 9,960 transactions (loaded once, cached client-side) |
+| GET | `/api/balance` | Coin balance + lifetime earned/redeemed stats |
+| GET | `/api/rewards` | Rewards catalogue (6 items) |
+| POST | `/api/redeem` | Redeem a reward atomically. `404` unknown reward · `402` insufficient balance |
+| GET | `/api/analytics` | Pre-aggregated category breakdown + monthly trend |
+
+Schema: see `server/schema.sql` — 4 tables (`users`, `transactions`, `rewards`, `redemptions`), indexed on every filter/sort column plus a `pg_trgm` GIN index on merchant name.
+
+## Live URLs
+
+Not deployed — running locally only (24h window went into depth over deployment). No demo video yet either; this README + the commit history are the walkthrough.
 
 ## Done
 
-- ✅ 10k-row virtualized transaction table (scrolls smoothly, no pagination)
-- ✅ Filter by category, date range, amount range, payment status, merchant search
-- ✅ Sort by date, amount, merchant, category (click column header to cycle)
-- ✅ Row click opens detail drawer with full transaction info
-- ✅ Sticky table header, hover states, loading skeletons, empty state, error state
-- ✅ Spend analytics: category breakdown (bar) + monthly trend (line) charts
-- ✅ Chart-to-table cross-filtering (click a bar to filter the table)
-- ✅ Rewards system: coin balance, rewards catalogue, redemption flow
-- ✅ Coin formula: min(floor(amount/100), 50) for SUCCESS transactions only
-- ✅ Backend rejects invalid/unaffordable redemptions (proper HTTP status codes)
-- ✅ PostgreSQL with relational schema (flat transactions + coins_balance)
-- ✅ One-command seed (`python seed.py`)
-- ✅ Distinctive UI: Raw Aesthetics (sharp edges, monospaced, gold accents, anti-liquid glass)
-- ✅ Dark-mode-first, responsive down to 360px
-- ✅ TypeScript + ESLint clean (0 errors)
-- ✅ Commit history with meaningful messages
+- ✅ 10k-row table: virtualized (~20 DOM rows) **and** client-side paginated (50/page) — smooth scroll, instant search-as-you-type
+- ✅ Filters: category, date range, amount range, payment status — freely combinable, plus merchant search
+- ✅ Sorting by date / amount / merchant / category (click header cycles asc → desc)
+- ✅ Row detail: slide-over panel on desktop, full-screen overlay on mobile
+- ✅ Table states: sticky header, hover, keyboard focus rings, skeleton loading, empty vs. no-results, error
+- ✅ Analytics: category breakdown (bar) + monthly trend (line, with average reference line)
+- ✅ Two-way cross-filtering: clicking a bar filters the table; table filters reshape the charts (dimmed bars + "filtered" badge when non-category filters are active)
+- ✅ Rewards: balance always visible, 6-item catalogue, Select → Confirm → Done flow
+- ✅ Optimistic balance update with clean rollback when redemption fails
+- ✅ Backend rejects invalid/unaffordable redemptions with proper status codes (404 / 402), atomic deduct + log in a single transaction
+- ✅ PostgreSQL schema + one-command idempotent seed of the provided dataset
+- ✅ Distinctive UI: dark-first "raw aesthetics" — sharp edges, monospaced financial figures, gold accent, anti-liquid-glass surfaces
+- ✅ Responsive down to 360px: bottom-sheet filter overlay, frozen first table column, 44px touch targets
+- ✅ Keyboard support: arrow keys / Home / End walk rows, Enter opens detail, Escape closes overlays; ARIA live region announces result counts
+- ✅ TypeScript and ESLint pass with 0 errors
 
 ## Not Done
 
-- ❌ Deployment (Vercel + Render + Supabase) — running locally only
-- ❌ Demo video (optional, deployment not required for review)
-- ❌ Server-side pagination/filtering (using client-side caching instead)
-- ❌ Two-way chart-to-everything filtering (charts are driven by table filters,
-  but table filters don't reshape the charts beyond showing the aggregated subset)
-- ❌ Optimistic balance updates (balance updates after API confirms)
-- ❌ Focus trap in the detail drawer (Escape to close is supported)
-- ❌ Automated tests
+- ❌ Deployment (Vercel + Render/Fly + hosted Postgres) and demo video
+- ❌ Automated tests (the brief lists them as genuinely optional; none written)
+- ❌ Server-side pagination / filtering / sorting — deliberately declined, see `DECISIONS.md` DT3
+- ❌ Focus trap + Escape handling on the **desktop** slide-over panel (the mobile overlay has both)
+- ❌ Light mode receives minimal polish — it's a token swap driven by system preference, not a designed second theme
 
 ## Known Issues
 
-- The `useVirtualizer` from @tanstack/react-virtual triggers a React Compiler
-  warning about incompatible library functions. This is a known issue with the
-  library and doesn't affect functionality.
-- Initial data fetch loads all 10k rows into memory (~5-8MB). For this dataset
-  size it's fine, but wouldn't scale beyond ~50k rows without server-side
-  pagination.
-- Light mode is functional but the visual language is designed for dark mode;
-  light mode is a secondary consideration.
-- No keyboard navigation (arrow keys, Enter to open detail) — mouse-only at this stage.
+- `npm run build` fails on the development machine used to build this (Turbopack PostCSS worker exits with `0xc0000142` on Windows). Verified pre-existing on a clean checkout — `next dev` runs the app fine.
+- The full dataset ships to the browser once (~2 MB JSON). Fine at 10k rows; past ~50k you'd want the server-side route we consciously skipped.
+- Redemption atomicity comes from running check-deduct-log in one database transaction. It does not take a row lock (`SELECT … FOR UPDATE`) — correct for a single-user demo, not for concurrent multi-user writes.
+- CORS currently allows all origins (`allow_origins=["*"]`) — flagged with a TODO to restrict in production.
+- One pre-existing ESLint warning from `@tanstack/react-virtual` (React Compiler compatibility note); harmless.
 
 ## Project Structure
+
 ```
 plutus/
-├── client/                  # Frontend (Next.js + TypeScript + Tailwind)
-│   ├── src/
-│   │   ├── app/             # Pages, layout, global CSS
-│   │   ├── components/      # UI components
-│   │   │   ├── transactions/  # Table, filters, detail drawer
-│   │   │   ├── analytics/    # Chart view
-│   │   │   ├── rewards/      # Rewards catalogue + redemption
-│   │   │   ├── layout/       # Header, navigation
-│   │   │   └── ui/           # Button, Card, Badge, Input, StatusBadge
-│   │   ├── lib/            # API client, design tokens
-│   │   └── stores/         # Zustand state stores
-│   └── package.json
-├── server/                  # Backend (FastAPI + Python)
-│   ├── main.py              # 5 API endpoints + CORS
-│   ├── models.py            # Pydantic models
-│   ├── schema.sql           # PostgreSQL schema
-│   ├── seed.py              # One-command data loader
+├── client/                     # Next.js frontend
+│   └── src/
+│       ├── app/                # Layout, page shell, global CSS (theme tokens)
+│       ├── components/
+│       │   ├── transactions/   # Table, FilterBar, detail panel
+│       │   ├── analytics/      # Charts view
+│       │   ├── rewards/        # Catalogue + redemption flow
+│       │   ├── layout/         # Header, Navigation
+│       │   └── ui/             # Button, Card, Badge, Input, Overlay, Logo…
+│       ├── hooks/              # useMediaQuery, useDropdown
+│       ├── lib/                # API client, TypeScript types
+│       └── stores/             # Zustand stores
+├── server/
+│   ├── main.py                 # FastAPI endpoints
+│   ├── models.py               # Pydantic response/request models
+│   ├── schema.sql              # PostgreSQL DDL (tables + indexes)
+│   ├── seed.py                 # One-command loader (normalizes the raw JSON)
 │   └── requirements.txt
-├── docs/plutus/            # Problem decomposition (intro, IPDs, ITDs)
-├── .claude/skills/         # Reusable skills (fintech UI 2026)
-└── Digital_Alpha_Assignment.md  # Original assignment brief
+├── docs/                       # Problem decompositions, IPDs, ITDs per feature
+├── transactions.json           # Provided dataset (committed)
+├── AI-USAGE.md / ASSUMPTIONS.md / DECISIONS.md
+└── Digital_Alpha_Assignment.md # Original brief
 ```

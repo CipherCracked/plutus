@@ -16,6 +16,8 @@ import {
 } from "chart.js"
 import { Bar, Line } from "react-chartjs-2"
 import type { ChartEvent } from "chart.js"
+import ChartJSDataLabels from "chartjs-plugin-datalabels"
+import Annotation from "chartjs-plugin-annotation"
 import { fetchBalance, fetchRewards } from "@/lib/api"
 import { useTransactionStore } from "@/stores/transaction-store"
 
@@ -29,6 +31,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
+  ChartJSDataLabels,
+  Annotation,
 )
 
 // Raw aesthetics chart config — monospaced, sharp, dark
@@ -66,6 +70,21 @@ const chartOptions = {
 } as const
 
 const barColors = ["#d4af37", "#22c55e", "#ef4444", "#f59e0b", "#3b82f6", "#a855f7", "#ec4899", "#06b6d4"]
+
+/**
+ * Compact currency formatter for chart data labels.
+ * Uses L/K suffixes to fit within narrow bar widths.
+ * Users can hover for exact values via tooltips.
+ */
+const formatCurrencyCompact = (amount: number): string => {
+  if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(1)}L`
+  }
+  if (amount >= 1000) {
+    return `₹${(amount / 1000).toFixed(1)}K`
+  }
+  return `₹${amount}`
+}
 
 export function AnalyticsView() {
   const { data: balance, isLoading: balanceLoading } = useSWR("/api/balance", () => fetchBalance())
@@ -178,6 +197,15 @@ export function AnalyticsView() {
         borderRadius: 0,
         borderWidth: 0,
         barThickness: 24,
+        // Data labels — compact currency format above each bar
+        datalabels: {
+          anchor: "end" as const,
+          align: "top" as const,
+          formatter: (value: number) => formatCurrencyCompact(value),
+          color: "#e5e5e5",
+          font: { family: "monospace", size: 10 },
+          offset: 4,
+        },
         // chart-js doesn't support per-bar colors that change on click out of the box,
         // but the above backgroundColor is recomputed on each render so it stays in sync
       },
@@ -201,7 +229,41 @@ export function AnalyticsView() {
     },
   }
 
-  // Line chart — monthly trend
+  // Line chart — monthly trend with average reference line
+  const avgMonthly =
+    monthlyData.length > 0
+      ? monthlyData.reduce((sum, m) => sum + m.total, 0) / monthlyData.length
+      : 0
+
+  const lineChartOptions = {
+    ...chartOptions,
+    plugins: {
+      ...chartOptions.plugins,
+      // ChartJSDataLabels registers globally, so it would label every monthly
+      // point and the figures overflow. Data labels are for the bar chart only.
+      datalabels: { display: false },
+      annotation: {
+        annotations: {
+          avgLine: {
+            type: "line" as const,
+            yMin: avgMonthly,
+            yMax: avgMonthly,
+            borderColor: "#555555",
+            borderWidth: 1,
+            borderDash: [4, 4],
+            label: {
+              content: "Avg",
+              enabled: true,
+              position: "end" as const,
+              color: "#9a9a9a",
+              font: { family: "monospace", size: 9 },
+            },
+          },
+        },
+      },
+    },
+  }
+
   const lineChartData = {
     labels: monthlyData.map((m) => m.month),
     datasets: [
@@ -289,7 +351,7 @@ export function AnalyticsView() {
           <h3 className="mb-2 text-xs font-mono uppercase tracking-wider text-text-secondary">
             Monthly Trend
           </h3>
-          <Line data={lineChartData} options={chartOptions} />
+          <Line data={lineChartData} options={lineChartOptions} />
         </div>
       </div>
     </div>

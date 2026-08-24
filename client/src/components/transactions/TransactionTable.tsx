@@ -7,6 +7,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { FilterBar } from "./FilterBar"
 import { TransactionDetail } from "./TransactionDetail"
 import { Overlay } from "@/components/ui/Overlay"
+import { Badge } from "@/components/ui/Badge"
+import { CoinIcon } from "@/components/icons/CoinIcon"
 import { clsx } from "clsx"
 import { Transaction } from "@/lib/api"
 
@@ -25,10 +27,42 @@ const HEADER_HEIGHT = 44
 const ROW_HEIGHT_DESKTOP = 48
 const ROW_HEIGHT_MOBILE = 40
 
+/**
+ * Category-to-color mapping for colored dots in the Category column.
+ * Matches the barColors array used in AnalyticsView for chart-table consistency.
+ * Colors are chosen to be distinguishable from status badges (green/red/amber)
+ * and the gold accent — they encode category identity, not transaction state.
+ */
+const CATEGORY_COLORS: Record<string, string> = {
+  "Food & Dining": "#22c55e",       // green (distinct from status-green by context)
+  "Transport": "#3b82f6",           // blue
+  "Shopping": "#ec4899",            // pink
+  "Entertainment": "#a855f7",       // purple
+  "Bills & Utilities": "#f59e0b",   // amber (distinct from status-pending by context)
+  "Healthcare": "#ef4444",          // red (distinct from status-failed by context)
+  "Travel": "#06b6d4",              // cyan
+  "Other": "#84cc16",               // lime
+}
+
 const COLUMNS: Column[] = [
   { key: "timestamp", label: "Date", width: 90, smWidth: 200 },
   { key: "merchant", label: "Merchant", width: 120, smWidth: 500 },
-  { key: "category", label: "Category", width: 90, smWidth: 240 },
+  {
+    key: "category",
+    label: "Category",
+    width: 90,
+    smWidth: 240,
+    render: (txn) => (
+      <div className="flex items-center gap-2">
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: CATEGORY_COLORS[txn.category] || "#9a9a9a" }}
+          aria-hidden="true"
+        />
+        <span>{txn.category || "Uncategorized"}</span>
+      </div>
+    ),
+  },
   {
     key: "amount",
     label: "Amount",
@@ -48,13 +82,17 @@ const COLUMNS: Column[] = [
     width: 60,
     smWidth: 140,
     align: "center",
-    render: (txn) => (
-      <span
-        className={txn.coins_earned > 0 ? "text-accent" : "text-text-secondary"}
-      >
-        {txn.coins_earned > 0 ? `+${txn.coins_earned}` : "—"}
-      </span>
-    ),
+    render: (txn) =>
+      txn.coins_earned > 0 ? (
+        <Badge variant="gold">
+          <CoinIcon className="w-3 h-3 mr-1" aria-hidden="true" />
+          +{txn.coins_earned}
+        </Badge>
+      ) : (
+        <Badge variant="default">
+          <span className="text-text-secondary">—</span>
+        </Badge>
+      ),
   },
   {
     key: "status",
@@ -62,18 +100,17 @@ const COLUMNS: Column[] = [
     width: 80,
     smWidth: 220,
     align: "center",
-    render: (txn) => (
-      <span
-        className={clsx(
-          "text-xs font-medium uppercase",
-          txn.status === "SUCCESS" && "status-success",
-          txn.status === "FAILED" && "status-failed",
-          txn.status === "PENDING" && "status-pending",
-        )}
-      >
-        {txn.status}
-      </span>
-    ),
+    render: (txn) => {
+      const variant =
+        txn.status === "SUCCESS"
+          ? "success"
+          : txn.status === "FAILED"
+            ? "failed"
+            : txn.status === "PENDING"
+              ? "pending"
+              : "default"
+      return <Badge variant={variant}>{txn.status}</Badge>
+    },
   },
 ]
 
@@ -266,6 +303,9 @@ export function TransactionTable() {
         "hover:bg-surface-hover focus:outline-none focus-visible:ring-2",
         "focus-visible:ring-accent focus-visible:ring-offset-2",
         "focus-visible:ring-offset-background cursor-pointer transition-base",
+        // Subtle zebra striping — 30% opacity surface-hover on odd rows
+        index % 2 !== 0 && "bg-surface-hover/30",
+        // Selected row gets stronger hover tint (overrides zebra)
         selectedTransaction?.id === txn.id && "bg-surface-hover",
       )}
       style={{
