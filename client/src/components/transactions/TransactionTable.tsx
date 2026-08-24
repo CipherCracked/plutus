@@ -26,14 +26,14 @@ const ROW_HEIGHT_DESKTOP = 48
 const ROW_HEIGHT_MOBILE = 40
 
 const COLUMNS: Column[] = [
-  { key: "timestamp", label: "Date", width: 90, smWidth: 140 },
-  { key: "merchant", label: "Merchant", width: 120, smWidth: 260 },
-  { key: "category", label: "Category", width: 90, smWidth: 140 },
+  { key: "timestamp", label: "Date", width: 90, smWidth: 200 },
+  { key: "merchant", label: "Merchant", width: 120, smWidth: 500 },
+  { key: "category", label: "Category", width: 90, smWidth: 240 },
   {
     key: "amount",
     label: "Amount",
     width: 80,
-    smWidth: 120,
+    smWidth: 200,
     align: "right",
     render: (txn) =>
       txn.amount.toLocaleString("en-IN", {
@@ -46,7 +46,7 @@ const COLUMNS: Column[] = [
     key: "coins_earned",
     label: "Coins",
     width: 60,
-    smWidth: 100,
+    smWidth: 140,
     align: "center",
     render: (txn) => (
       <span
@@ -60,7 +60,7 @@ const COLUMNS: Column[] = [
     key: "status",
     label: "Status",
     width: 80,
-    smWidth: 140,
+    smWidth: 220,
     align: "center",
     render: (txn) => (
       <span

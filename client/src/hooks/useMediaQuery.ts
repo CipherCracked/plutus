@@ -11,16 +11,17 @@ import { useEffect, useState } from "react"
  * and row height at the `sm` breakpoint (640px).
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() => {
-    // SSR safety — window may not exist
-    if (typeof window === "undefined") return false
-    return window.matchMedia(query).matches
-  })
+  // Initialize to `false` on both server and first client paint to avoid
+  // hydration mismatch.  The correct value propagates after the effect
+  // below runs — React reconciles the transition automatically.
+  const [matches, setMatches] = useState(false)
 
   useEffect(() => {
+    if (typeof window === "undefined") return
     const mediaQuery = window.matchMedia(query)
-    const handler = (event: MediaQueryListEvent) => setMatches(event.matches)
+    setMatches(mediaQuery.matches)
 
+    const handler = (event: MediaQueryListEvent) => setMatches(event.matches)
     mediaQuery.addEventListener("change", handler)
     return () => mediaQuery.removeEventListener("change", handler)
   }, [query])

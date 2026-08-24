@@ -36,9 +36,13 @@ export function useDropdown<T extends HTMLElement = HTMLElement>() {
     if (!triggerRef.current) return null
 
     const rect = triggerRef.current.getBoundingClientRect()
+    // Position relative to viewport since the dropdown uses position:fixed
+    // (rendered via createPortal to document.body).  getBoundingClientRect
+    // already returns viewport-relative coordinates — adding scroll offsets
+    // would double-count them and misplace the dropdown on scrolled pages.
     return {
-      top: rect.bottom + window.scrollY,
-      left: rect.left + window.scrollX,
+      top: rect.bottom,
+      left: rect.left,
       width: rect.width,
     }
   }, [])

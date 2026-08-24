@@ -57,9 +57,9 @@ function DropdownFilter({
         ref={triggerRef}
         onClick={toggle}
         className={clsx(
-          "sharp-sm flex h-11 w-48 cursor-pointer items-center justify-between",
+          "sharp-sm flex h-8 w-48 sm:h-11 cursor-pointer items-center justify-between",
           "bg-surface border border-border px-2 py-1 text-xs font-mono text-foreground",
-          "focus-within:ring-1 focus-within:ring-accent min-h-[44px] min-w-[44px]",
+          "focus-within:ring-1 focus-within:ring-accent min-h-[44px] sm:min-h-8 min-w-[44px]",
           "transition-base",
         )}
       >
@@ -100,7 +100,7 @@ function DropdownFilter({
                 <label
                   key={opt}
                   className={clsx(
-                    "sharp-sm flex min-h-[44px] min-w-[44px] items-center gap-2",
+                    "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center gap-2",
                     "px-2 py-1 text-xs font-mono cursor-pointer",
                     "hover:bg-surface-hover transition-base",
                   )}
@@ -109,7 +109,7 @@ function DropdownFilter({
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleOption(opt)}
-                    className="sharp-sm h-4 w-4 cursor-pointer accent-accent min-h-[44px]"
+                    className="sharp-sm h-4 w-4 cursor-pointer accent-accent"
                   />
                   <span
                     className={clsx(
@@ -397,7 +397,7 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
             <div
               key={f.key}
               className={clsx(
-                "sharp-sm flex min-h-[44px] items-center gap-1.5",
+                "sharp-sm flex min-h-[44px] sm:min-h-8 items-center gap-1.5",
                 "bg-surface-hover border border-border px-2 py-0.5",
               )}
             >
@@ -410,7 +410,7 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
               <button
                 onClick={f.onRemove}
                 className={clsx(
-                  "sharp-sm flex min-h-[44px] min-w-[44px] items-center",
+                  "sharp-sm flex min-h-[44px] min-w-[44px] sm:h-6 sm:min-h-0 sm:min-w-0 items-center",
                   "justify-center text-text-secondary hover:text-accent",
                   "hover:bg-surface transition-base",
                 )}
@@ -448,8 +448,8 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
             </div>
           </div>
 
-          {/* GROUP: Filter (multi-select dropdowns) */}
-          <div className="flex items-start gap-3">
+          {/* GROUP: Filter (multi-select dropdowns) — wraps on narrow desktops */}
+          <div className="flex flex-wrap items-center gap-3">
             <DropdownFilter
               label="Category"
               options={CATEGORY_OPTIONS}
@@ -473,8 +473,8 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
             />
           </div>
 
-          {/* GROUP: Range (date + amount) */}
-          <div className="flex items-start gap-3">
+          {/* GROUP: Range (date + amount) — wraps on narrow desktops */}
+          <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
                 Date From
@@ -596,7 +596,7 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
           <button
             onClick={() => setIsFilterOpen(true)}
             className={clsx(
-              "sharp-sm flex min-h-[44px] min-w-[44px] items-center justify-center",
+              "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center justify-center",
               "px-3 py-1 text-xs font-mono",
               "text-text-secondary hover:text-foreground hover:bg-surface-hover",
               "border border-border transition-base",
