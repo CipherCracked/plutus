@@ -42,12 +42,20 @@ interface TransactionState {
   sortOrder: SortOrder
   setSort: (key: SortKey, order?: SortOrder) => void
 
+  // Pagination (client-side, on top of virtualized rendering)
+  currentPage: number
+  pageSize: number
+  setCurrentPage: (page: number) => void
+  setPageSize: (size: number) => void
+
   // Selected transaction (for detail modal)
   selectedTransaction: Transaction | null
   setSelectedTransaction: (txn: Transaction | null) => void
 
-  // Computed (filtered + sorted)
+  // Computed (filtered + sorted + paginated)
   getFiltered(): Transaction[]
+  getCurrentPageData(): Transaction[]
+  getTotalPages(): number
 }
 
 const DEFAULT_FILTERS: TransactionFilters = {
@@ -82,7 +90,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       filters: { ...state.filters, ...updates },
     })),
   clearFilters: () =>
-    set({ filters: { ...DEFAULT_FILTERS } }),
+    set({ filters: { ...DEFAULT_FILTERS }, currentPage: 1 }),
+
+  // Pagination
+  currentPage: 1,
+  pageSize: 50,
+  setCurrentPage: (page) => set({ currentPage: page }),
+  setPageSize: (size) => set({ pageSize: size, currentPage: 1 }),
 
   // Sort
   sortKey: INITIAL_SORT.key,
@@ -91,6 +105,8 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     set((state) => ({
       sortKey: key,
       sortOrder: order || (state.sortKey === key && state.sortOrder === "asc" ? "desc" : "asc"),
+      // Reset to first page on new sort
+      currentPage: 1,
     })),
 
   // Selected transaction
@@ -175,5 +191,20 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     })
 
     return filtered
+  },
+
+  // Computed: current page's slice of filtered data
+  getCurrentPageData: (): Transaction[] => {
+    const { getFiltered, currentPage, pageSize } = get()
+    const filtered = getFiltered()
+    const start = (currentPage - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  },
+
+  // Computed: total pages from filtered results
+  getTotalPages: (): number => {
+    const { getFiltered, pageSize } = get()
+    const filtered = getFiltered()
+    return Math.max(1, Math.ceil(filtered.length / pageSize))
   },
 }))

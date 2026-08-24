@@ -140,16 +140,41 @@ export function AnalyticsView() {
   // Active category filter (for chart bar highlight)
   const activeCategory = filters.category.length === 1 ? filters.category[0] : null
 
+  // Detect if any non-category filter is active (for chart dimming)
+  const hasNonCategoryFilter =
+    (filters.search && filters.search.length > 0) ||
+    (filters.status && filters.status.length > 0) ||
+    (filters.payment_method && filters.payment_method.length > 0) ||
+    filters.date_from !== null ||
+    filters.date_to !== null ||
+    filters.amount_min !== null ||
+    filters.amount_max !== null
+
   // Bar chart — category breakdown with click-to-filter
+  // When a non-category filter is active and no category is selected, dim all bars
+  const dimColor = (hex: string): string => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r},${g},${b},0.6)`
+  }
+
+  const barBgs = categoryData.map((c) => {
+    if (c.category === activeCategory) return "#e0c266"
+    const baseColor = barColors[categoryData.findIndex((d) => d.category === c.category) % barColors.length]
+    if (hasNonCategoryFilter && !activeCategory) {
+      return dimColor(baseColor)
+    }
+    return baseColor
+  })
+
   const barChartData = {
     labels: categoryData.map((c) => c.category),
     datasets: [
       {
         label: "Total Amount",
         data: categoryData.map((c) => c.total),
-        backgroundColor: categoryData.map((c) =>
-          c.category === activeCategory ? "#e0c266" : barColors[categoryData.findIndex((d) => d.category === c.category) % barColors.length],
-        ),
+        backgroundColor: barBgs,
         borderRadius: 0,
         borderWidth: 0,
         barThickness: 24,
@@ -227,9 +252,16 @@ export function AnalyticsView() {
         {/* Category breakdown — clickable bars */}
         <div className="sharp-sm h-48 w-full bg-surface border border-border p-2 sm:h-64 sm:p-3">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-xs font-mono uppercase tracking-wider text-text-secondary">
-              Spend by Category
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+                Spend by Category
+              </h3>
+              {hasNonCategoryFilter && !activeCategory && (
+                <span className="whitespace-nowrap text-xs font-mono text-accent">
+                  · filtered: {filteredTxns.length} of {transactions.length}
+                </span>
+              )}
+            </div>
             {activeCategory && (
               <button
                 onClick={() => setFilters({ category: [] })}

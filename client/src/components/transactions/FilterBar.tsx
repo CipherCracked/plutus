@@ -561,8 +561,7 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
         {/* Desktop: result count + clear all */}
         <div className="flex items-center justify-between pt-3">
           <div className="text-xs font-mono text-text-secondary">
-            {resultCount.toLocaleString()} / {totalCount.toLocaleString()}{" "}
-            results
+            {resultCount.toLocaleString()} {resultCount === totalCount ? "transactions" : "matched results"}
           </div>
           {activeFilters.length > 0 && (
             <button
@@ -584,8 +583,7 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-xs font-mono text-text-secondary">
-              {resultCount.toLocaleString()} / {totalCount.toLocaleString()}{" "}
-              results
+              {resultCount.toLocaleString()} {resultCount === totalCount ? "transactions" : "matched"}
             </div>
             {activeFilters.length > 0 && (
               <span className="sharp-sm bg-surface-hover px-1.5 py-0.5 text-xs font-mono text-accent">
