@@ -1,126 +1,64 @@
 # Assumptions
 
-Product decisions made where the Digital Alpha assignment brief was vague or
-unspecified. These are documented here for transparency and traceability.
+Product decisions made where the Digital Alpha brief was vague or silent. Each one traces to a problem folder under `docs/`.
 
----
+## 1. One default user, no authentication
 
-## 1. Single-user demo — no authentication
+The brief never mentions login. We assume a single implicit user (`plutus_user`, seeded with the database). No auth headers, no session handling; the balance response carries the username as a display field.
+*(docs/plutus/intro.md)*
 
-**The brief** does not specify a user model or authentication. It says
-"single-user demo" in the non-goals but doesn't name the user.
+## 2. Seeded history defines the starting balance
 
-**Assumption:** There is one default user. The frontend never sends credentials.
-The backend exposes a static `username` in the balance response. No login flow,
-no session management, no user switching.
+The brief says users "earn coins on payments" but not what balance a new user starts with. We assume the seeded transaction history is *this user's own past*, so the seed initializes the coin balance to the total coins that history earned (256,415 at seed time). Redeeming then behaves against a realistic number instead of an arbitrary one.
+*(docs/plutus-seed-script/ipds/coin-balance-initialization.md)*
 
-**Implication:** The `CoinBalance` response includes `username: "demo_user"`
-or similar. No auth headers on API requests.
+## 3. Only successful payments earn coins
 
-## 2. Transactions are static — no real-time updates
+The formula (`1 coin per ₹100, capped per transaction`) is given, but its interaction with payment status isn't. Assumption: only `SUCCESS` transactions earn coins; `PENDING` and `FAILED` earn zero regardless of amount.
 
-**The brief** mentions a seeded dataset but doesn't specify whether transactions
-arrive in real time (e.g., a new bill payment happening during the demo).
+## 4. Refunds are real transactions that earn nothing
 
-**Assumption:** Transactions are seeded once and are static for the duration of
-the demo session. The frontend loads them once and caches in Zustand.
+The dataset contains **148 negative amounts** (refunds/credits). Rather than hiding them we keep them visible in the table and analytics, and explicitly award them 0 coins in the seed script.
 
-**Implication:** SWR is configured with a 5-minute deduping interval for
-transactions. No WebSocket or polling. No optimistic UI for new transactions.
+## 5. Dirty data is normalized, not dropped — except duplicates
 
-## 3. Coin formula applies only to SUCCESS transactions
+Profiling the provided JSON surfaced data quality issues the brief doesn't mention. Our handling:
 
-**The brief** gives the formula as `min(floor(amount / 100), 50)` but doesn't
-specify how it interacts with the `status` field (SUCCESS / FAILED / PENDING).
+| Issue found | Decision |
+|---|---|
+| Timestamps in **4 formats** (ISO datetime ~7.4k, epoch ms ~1k, date-only ~715, `DD/MM/YYYY HH:MM:SS` ~841) | All normalized to UTC timestamps |
+| `category: null` on some rows | Coalesced to `"Uncategorized"` |
+| Inconsistent status casing (`success` vs `SUCCESS`) | Uppercased |
+| **40 duplicate transaction IDs** | Dropped — first occurrence wins |
 
-**Assumption:** Coins are earned only for SUCCESS transactions. PENDING and
-FAILED transactions earn 0 coins (even if the amount is high).
+*(docs/plutus-seed-script/itds/data-quality-normalization.md)*
 
-**Implication:** `coins_earned` column in the seed script is computed as
-`min(floor(amount / 100), 50)` if `status = 'SUCCESS'`, else 0. The frontend
-displays `coins_earned` as-is (already pre-computed in the database).
+## 6. The rewards catalogue is ours to invent
 
-## 4. Negative transaction amounts earn 0 coins
+The brief asks for 4–6 rewards "such as vouchers, cashback". We defined 6 items across cashback vouchers, shopping vouchers, a data top-up and an OTT trial perk, priced 100–750 coins (₹50–₹500 of value) so several are reachable within a session's budget.
+*(docs/plutus-seed-script/ipds/rewards-catalogue-seeding.md)*
 
-**The brief** says the formula is `min(floor(amount / 100), 50)` but doesn't
-address negative amounts (which could represent refunds or credits).
+## 7. Redemption atomicity scoped to a single-user demo
 
-**Assumption:** `floor(negative / 100)` would be ≤ 0, but `min(0, 50) = 0`, so
-negative amounts naturally earn 0 coins. This is consistent with the formula
-without additional special-casing.
+The backend runs lookup → balance check → deduct → log inside one database transaction that commits on success and rolls back entirely on failure — no partial states. It deliberately does **not** take a row lock (`SELECT … FOR UPDATE`): correct behaviour for concurrent multi-user redemption was out of scope, and pretending otherwise would be dead code.
+*(docs/plutus-backend/itds/atomic-redemption.md)*
 
-**Implication:** No explicit `if amount < 0` check in the seed script — the
-formula handles it.
+## 8. Charts and table share one filtered dataset
 
-## 5. Reward redemption is atomic — no race conditions
+For cross-filtering to feel honest, both views must answer the same question. Charts aggregate in memory from exactly the rows the table's filters select — so table filters reshape charts and chart clicks filter the table, with no second API round-trip. The pre-aggregated `/api/analytics` endpoint exists but is intentionally not on this path.
+*(docs/plutus-client/chart-to-table-filtering/itds/chart-data-source.md)*
 
-**The brief** requires a redeem endpoint but doesn't describe concurrency
-behavior (e.g., two simultaneous redemption attempts that would overdraw the
-balance).
+## 9. Dark mode is the product; light mode is a fallback
 
-**Assumption:** The backend performs an atomic check-then-deduct in a single
-database transaction. If the balance is insufficient, the API returns a 402
-status. The frontend treats any non-2xx response as a redemption failure.
+The visual language ("raw aesthetics": true-black surfaces, gold accent, monospace figures) is designed dark-first. A manual toggle existed early on but controlled nothing — it was removed rather than shipped broken. Light mode survives only as a derived token swap following the OS preference, and gets minimal polish.
+*(docs/plutus-client/ipds/distinctive-visual-language.md)*
 
-**Implication:** `POST /api/redeem` returns 402 if `new_balance < 0`. The
-frontend's `redeemReward()` function throws an error, which the RewardsView
-component catches and surfaces as a user-facing error message.
+## 10. "Responsive down to 360px" means usable, not shrunken
 
-## 6. Chart data comes from in-memory aggregation, not a separate API endpoint
+At 360px we don't squeeze the desktop layout — the filter bar becomes a bottom sheet with sticky Apply/Clear, the detail view becomes a full-screen overlay, touch targets grow to 44px, and the table scrolls horizontally behind a frozen first column.
+*(docs/mobile-responsiveness/intro.md)*
 
-**The brief** describes a `/api/analytics` endpoint but the chart-to-table
-cross-filtering requirement means charts must reflect whatever filters the
-user has applied to the table.
+## 11. Idempotent, destructive seeding
 
-**Assumption:** The `/api/analytics` endpoint exists (for the README's API
-documentation) but the frontend computes charts from the in-memory
-`transactions` array via `getFiltered()`. This keeps charts and table in sync
-with zero API round-trips.
-
-**Implication:** The backend `/api/analytics` endpoint is available but unused
-by the primary chart rendering path. It remains as a fallback.
-
-## 7. Dark mode is first-class, light mode is secondary
-
-**The brief** doesn't specify a color scheme preference. The 2026 UI trends
-(firecrawl research) favor dark mode as the primary aesthetic.
-
-**Assumption:** Design starts in dark mode. Light mode is derived from the
-same token system but receives less visual polish (it's functional, not
-fine-tuned).
-
-**Implication:** The theme uses CSS custom properties with `prefers-color-scheme`
-fallbacks. Dark mode gets the full "raw aesthetics + anti-liquid glass" treatment.
-
-## 8. Responsiveness down to 360px means functional, not pixel-perfect
-
-**The brief** says "responsive down to 360px" but doesn't specify which
-breakpoints or how the layout should adapt.
-
-**Assumption:** Layout collapses to a single column on narrow screens. The
-table becomes horizontally scrollable. Charts stack vertically. The rewards
-grid goes from 3 columns → 1 column.
-
-**Implication:** No complex mobile-specific redesign — just a functional
-responsive layout that doesn't break at 360px.
-
-## 9. The seed script runs in one command and is safe to re-run
-
-**The brief** mentions seeding but doesn't specify idempotency.
-
-**Assumption:** `python seed.py` is idempotent — it drops existing data and
-re-seeds from scratch. Re-running it won't duplicate rows or error out.
-
-**Implication:** The seed script uses `DROP TABLE IF EXISTS ... CASCADE` followed
-by `CREATE TABLE` and `INSERT`. Running it twice yields the same dataset.
-
-## 10. 10k rows is the exact count
-
-**The brief** says "approximately 10,000 transactions."
-
-**Assumption:** The seed script generates exactly 9,960 transactions (as
-discovered during backend testing). This is "approximately 10,000" in the
-assignment's terms.
-
-**Implication:** The README says "~10k transactions" and the seed script
-constant is `NUM_TRANSACTIONS = 9960`.
+Re-running the seed must always work and always produce the same state. We chose drop-and-recreate (`DROP TABLE IF EXISTS … CASCADE`) over upserts — simpler, and acceptable because the database holds only seeded demo data.
+*(docs/plutus-seed-script/itds/seed-script-architecture.md)*
