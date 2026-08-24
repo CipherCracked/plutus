@@ -1,15 +1,18 @@
 /**
- * Plutus logo — geometric P + growth bars + orbital swoosh.
+ * Plutus logo — geometric P + ascending bars + growth swoosh + sparkle.
  *
- * The full mark combines:
+ * Full mark combines:
  * - Geometric "P" in navy gradient (trust/stability)
- * - Three growth bars in teal gradient (data/earnings)
+ * - Three ascending bars in teal→green gradient (data/earnings)
  * - Orbital swoosh (motion/growth trajectory)
  * - Sparkle accent (insights)
- * - Wordmark "PLUTUS" + tagline (for large displays)
+ * - Wordmark "PLUTUS" (for full/desktop displays)
  *
  * Per /fintech-ui-2026 skill: the mark is a single recognizable unit
  * at icon size; the full logo is for splash/landing pages.
+ *
+ * Theme: dark-first (#0a0a0a background).  The navy P is visible as a
+ * subtle shape on the dark surface; the teal/green accent pops.
  */
 
 interface LogoProps {
@@ -20,175 +23,291 @@ interface LogoProps {
 
 export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
   const iconSize = {
-    sm: 24,
-    md: 32,
+    sm: 32,
+    md: 40,
     lg: 64,
     xl: 80,
   }[size]
 
   const fullSizes = {
-    sm: { width: 240, height: 80 },
-    md: { width: 320, height: 108 },
-    lg: { width: 400, height: 135 },
-    xl: { width: 480, height: 162 },
+    sm: { width: 280, height: 90 },
+    md: { width: 380, height: 120 },
+    lg: { width: 480, height: 150 },
+    xl: { width: 600, height: 190 },
   }[size]
 
   if (variant === "full") {
     return (
-      <div className={`flex flex-col items-center ${className || ""}`} aria-label="Plutus">
+      <div
+        className={`flex items-center justify-center ${className || ""}`}
+        aria-label="Plutus"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 1200 1000"
+          viewBox="0 0 1600 620"
           width={fullSizes.width}
           height={fullSizes.height}
+          fill="none"
           role="img"
           aria-labelledby="title desc"
         >
           <title id="title">Plutus</title>
           <desc id="desc">
-            Plutus logo featuring a geometric P, growth bars, upward swoosh and sparkle.
+            Plutus logo with a geometric P, ascending bars, growth swoosh
+            and sparkle.
           </desc>
 
           <defs>
-            <linearGradient id="navyGradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#d4af37" />
-              <stop offset="100%" stopColor="#b8860b" />
+            {/* Deep navy for the P and wordmark */}
+            <linearGradient
+              id="navy"
+              x1="120"
+              y1="60"
+              x2="1450"
+              y2="600"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stop-color="#183B72" />
+              <stop offset="1" stop-color="#071A40" />
             </linearGradient>
 
-            <linearGradient id="growthGradient" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#d4af37" />
-            </linearGradient>
-
-            <linearGradient id="swooshGradient" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#e5e5e5" />
-              <stop offset="55%" stopColor="#d4af37" />
-              <stop offset="100%" stopColor="#d4af37" />
+            {/* Teal / green growth accent */}
+            <linearGradient
+              id="growth"
+              x1="80"
+              y1="570"
+              x2="600"
+              y2="170"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stop-color="#12B8D1" />
+              <stop offset="0.5" stop-color="#20C7B7" />
+              <stop offset="1" stop-color="#79E1A1" />
             </linearGradient>
           </defs>
 
-          {/* Geometric P */}
+          {/* ========================= */}
+          {/* PLUTUS ICON */}
+          {/* ========================= */}
+
+          {/* Main geometric P */}
           <path
-            d="M 340 90 H 620 C 740 90 815 165 815 285 C 815 405 738 490 615 490 H 590 V 390 H 615 C 680 390 715 350 715 285 C 715 220 680 190 620 190 H 440 V 455 C 390 475 355 495 340 525 Z"
-            fill="url(#navyGradient)"
+            d="
+              M150 75
+              H320
+              C445 75 530 150 530 270
+              C530 390 445 470 325 470
+              H300
+              V365
+              H325
+              C390 365 425 330 425 270
+              C425 210 390 180 325 180
+              H255
+              V435
+              C220 445 185 465 150 500
+              Z
+            "
+            fill="url(#navy)"
           />
 
-          {/* Inner vertical cut to make P more geometric */}
-          <rect x="440" y="190" width="105" height="300" fill="#0a0a0a" />
+          {/* White P counter */}
+          <path
+            d="
+              M255 180
+              H325
+              C390 180 425 210 425 270
+              C425 330 390 365 325 365
+              H300
+              V470
+              H255
+              Z
+            "
+            fill="#FFFFFF"
+          />
 
-          {/* Growth bars */}
-          <g fill="url(#growthGradient)">
-            <rect x="340" y="535" width="70" height="105" rx="32" />
-            <rect x="430" y="465" width="80" height="175" rx="38" />
-            <rect x="530" y="375" width="90" height="265" rx="42" />
+          {/* ========================= */}
+          {/* ASCENDING BARS */}
+          {/* ========================= */}
+
+          <g fill="url(#growth)">
+            <rect x="135" y="440" width="65" height="120" rx="30" />
+            <rect x="220" y="385" width="75" height="175" rx="35" />
+            <rect x="315" y="315" width="85" height="245" rx="40" />
           </g>
 
-          {/* Rising orbital swoosh */}
+          {/* ========================= */}
+          {/* GROWTH SWOOSH */}
+          {/* ========================= */}
+
           <path
-            d="M 300 540 C 220 650 320 735 500 710 C 690 685 820 585 900 430 C 935 362 955 305 965 250 C 945 360 900 455 830 530 C 750 618 650 675 510 705 C 355 738 260 705 260 625 C 260 590 275 560 300 540 Z"
-            fill="url(#swooshGradient)"
+            d="
+              M90 500
+              C45 570 75 625 190 635
+              C335 648 500 580 605 455
+              C665 385 700 310 720 235
+
+              C690 350 635 445 555 515
+              C455 605 320 650 185 635
+              C70 622 35 555 90 500
+              Z
+            "
+            fill="url(#growth)"
           />
 
-          {/* Sparkle */}
+          {/* ========================= */}
+          {/* SPARKLE */}
+          {/* ========================= */}
+
           <path
-            d="M 970 230 C 982 278 1002 298 1050 310 C 1002 322 982 342 970 390 C 958 342 938 322 890 310 C 938 298 958 278 970 230 Z"
-            fill="url(#growthGradient)"
+            d="
+              M735 165
+              C746 210 765 229 810 240
+              C765 251 746 270 735 315
+              C724 270 705 251 660 240
+              C705 229 724 210 735 165
+              Z
+            "
+            fill="url(#growth)"
           />
 
-          {/* Wordmark */}
+          {/* ========================= */}
+          {/* WORDMARK */}
+          {/* ========================= */}
+
           <text
-            x="600"
-            y="845"
-            textAnchor="middle"
-            fontFamily="var(--font-geist-sans)"
-            fontSize="145"
-            fontWeight="800"
-            letterSpacing="26"
-            fill="url(#navyGradient)"
+            x="820"
+            y="365"
+            fill="url(#navy)"
+            fontFamily="Inter, Arial, Helvetica, sans-serif"
+            fontSize="165"
+            fontWeight="700"
+            letterSpacing="28"
           >
             PLUTUS
-          </text>
-
-          {/* Tagline */}
-          <rect x="105" y="900" width="100" height="4" rx="2" fill="#d4af37" />
-          <rect x="995" y="900" width="100" height="4" rx="2" fill="#d4af37" />
-          <text
-            x="600"
-            y="913"
-            textAnchor="middle"
-            fontFamily="var(--font-geist-sans)"
-            fontSize="30"
-            fontWeight="500"
-            letterSpacing="8"
-            fill="#9a9a9a"
-          >
-            INSIGHTS. REWARDS. GROWTH.
           </text>
         </svg>
       </div>
     )
   }
 
-  // Icon-only variant — just the mark (P + growth bars + swoosh + sparkle)
+  // Icon-only variant — just the mark (P + bars + swoosh + sparkle)
+  // Uses a cropped viewBox that excludes the wordmark
   return (
-    <div className={`flex items-center justify-center ${className || ""}`} aria-label="Plutus">
+    <div
+      className={`flex items-center justify-center ${className || ""}`}
+      aria-label="Plutus"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 1200 1000"
+        viewBox="0 0 820 620"
         width={iconSize}
         height={iconSize}
+        fill="none"
         role="img"
         aria-labelledby="title desc"
       >
         <title id="title">Plutus</title>
         <desc id="desc">
-          Plutus logo featuring a geometric P, growth bars, upward swoosh and sparkle.
+          Plutus logo featuring a geometric P, growth bars, upward swoosh
+          and sparkle.
         </desc>
 
         <defs>
-          <linearGradient id="navyGradient-icon" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#d4af37" />
-            <stop offset="100%" stopColor="#b8860b" />
+          <linearGradient
+            id="navy-icon"
+            x1="120"
+            y1="60"
+            x2="820"
+            y2="600"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" stopColor="#183B72" />
+            <stop offset="1" stopColor="#071A40" />
           </linearGradient>
 
-          <linearGradient id="growthGradient-icon" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="100%" stopColor="#d4af37" />
-          </linearGradient>
-
-          <linearGradient id="swooshGradient-icon" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#e5e5e5" />
-            <stop offset="55%" stopColor="#d4af37" />
-            <stop offset="100%" stopColor="#d4af37" />
+          <linearGradient
+            id="growth-icon"
+            x1="80"
+            y1="570"
+            x2="600"
+            y2="170"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" stopColor="#12B8D1" />
+            <stop offset="0.5" stopColor="#20C7B7" />
+            <stop offset="1" stopColor="#79E1A1" />
           </linearGradient>
         </defs>
 
         {/* Geometric P */}
         <path
-          d="M 340 90 H 620 C 740 90 815 165 815 285 C 815 405 738 490 615 490 H 590 V 390 H 615 C 680 390 715 350 715 285 C 715 220 680 190 620 190 H 440 V 455 C 390 475 355 495 340 525 Z"
-          fill="url(#navyGradient-icon)"
+          d="
+            M150 75
+            H320
+            C445 75 530 150 530 270
+            C530 390 445 470 325 470
+            H300
+            V365
+            H325
+            C390 365 425 330 425 270
+            C425 210 390 180 325 180
+            H255
+            V435
+            C220 445 185 465 150 500
+            Z
+          "
+          fill="url(#navy-icon)"
         />
 
-        {/* Inner vertical cut */}
-        <rect x="440" y="190" width="105" height="300" fill="#0a0a0a" />
+        {/* White P counter */}
+        <path
+          d="
+            M255 180
+            H325
+            C390 180 425 210 425 270
+            C425 330 390 365 325 365
+            H300
+            V470
+            H255
+            Z
+          "
+          fill="#FFFFFF"
+        />
 
-        {/* Growth bars */}
-        <g fill="url(#growthGradient-icon)">
-          <rect x="340" y="535" width="70" height="105" rx="32" />
-          <rect x="430" y="465" width="80" height="175" rx="38" />
-          <rect x="530" y="375" width="90" height="265" rx="42" />
+        {/* Ascending bars */}
+        <g fill="url(#growth-icon)">
+          <rect x="135" y="440" width="65" height="120" rx="30" />
+          <rect x="220" y="385" width="75" height="175" rx="35" />
+          <rect x="315" y="315" width="85" height="245" rx="40" />
         </g>
 
-        {/* Rising orbital swoosh */}
+        {/* Growth swoosh */}
         <path
-          d="M 300 540 C 220 650 320 735 500 710 C 690 685 820 585 900 430 C 935 362 955 305 965 250 C 945 360 900 455 830 530 C 750 618 650 675 510 705 C 355 738 260 705 260 625 C 260 590 275 560 300 540 Z"
-          fill="url(#swooshGradient-icon)"
+          d="
+            M90 500
+            C45 570 75 625 190 635
+            C335 648 500 580 605 455
+            C665 385 700 310 720 235
+
+            C690 350 635 445 555 515
+            C455 605 320 650 185 635
+            C70 622 35 555 90 500
+            Z
+          "
+          fill="url(#growth-icon)"
         />
 
         {/* Sparkle */}
         <path
-          d="M 970 230 C 982 278 1002 298 1050 310 C 1002 322 982 342 970 390 C 958 342 938 322 890 310 C 938 298 958 278 970 230 Z"
-          fill="url(#growthGradient-icon)"
+          d="
+            M735 165
+            C746 210 765 229 810 240
+            C765 251 746 270 735 315
+            C724 270 705 251 660 240
+            C705 229 724 210 735 165
+            Z
+          "
+          fill="url(#growth-icon)"
         />
       </svg>
     </div>
