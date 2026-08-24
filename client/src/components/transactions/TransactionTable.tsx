@@ -184,7 +184,8 @@ export function TransactionTable() {
       }}
       className={clsx(
         "absolute top-0 left-0 flex items-center border-b border-border",
-        "hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer transition-base",
+        "hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "cursor-pointer transition-base",
         selectedTransaction?.id === txn.id && "bg-surface-hover",
       )}
       style={{
@@ -284,16 +285,21 @@ export function TransactionTable() {
             {renderHeader()}
           </div>
           <div className="flex h-full items-center justify-center py-12">
-            <div className="text-center">
-              <span className="block text-3xl font-mono text-text-secondary mb-2">
-                ◻
-              </span>
-              <span className="block text-xs font-mono uppercase tracking-wider text-text-secondary mb-4">
-                No transactions match your filters
-              </span>
+            <div className="sharp-sm border border-border bg-surface-hover px-6 py-4 text-center">
+              <p className="mb-1 text-xs font-mono uppercase tracking-wider text-text-secondary">
+                No transactions match
+              </p>
+              <p className="text-xs font-mono text-foreground">
+                Try adjusting your filters or clearing them to see all{" "}
+                {allTransactions.length.toLocaleString()} transactions
+              </p>
               <button
                 onClick={clearFilters}
-                className="sharp-sm px-3 py-1 text-xs font-mono text-accent hover:text-foreground hover:bg-surface-hover transition-base"
+                className={clsx(
+                  "sharp-sm mt-3 px-3 py-1 text-xs font-mono",
+                  "border border-border text-accent hover:text-foreground",
+                  "hover:bg-surface-hover transition-base",
+                )}
               >
                 CLEAR FILTERS
               </button>
