@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState, useEffect } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useTransactionStore, type SortKey } from "@/stores/transaction-store"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
@@ -142,6 +142,11 @@ export function TransactionTable() {
   const {
     transactions: allTransactions,
     getFiltered,
+    getCurrentPageData,
+    getTotalPages,
+    currentPage,
+    pageSize,
+    setCurrentPage,
     sortKey,
     sortOrder,
     setSort,
@@ -162,7 +167,10 @@ export function TransactionTable() {
   )
   const tableWidth = columnWidths.reduce((sum, w) => sum + w, 0)
 
-  const transactions = getFiltered()
+  // Paginated + sorted data for the current view
+  const transactions = getCurrentPageData()
+  const totalFiltered = getFiltered().length
+  const totalPages = getTotalPages()
   const parentRef = useRef<HTMLDivElement>(null)
 
   const rowVirtualizer = useVirtualizer({
@@ -179,6 +187,44 @@ export function TransactionTable() {
       setSort(key, "desc")
     }
   }
+
+  // Keyboard navigation — virtual rows can't use roving tabindex because
+  // they mount/unmount during scroll. Track logical index + scroll into view.
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1)
+
+  const handleRowKeyDown = (
+    e: React.KeyboardEvent<HTMLDivElement>,
+    idx: number,
+  ) => {
+    const maxIndex = transactions.length - 1
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault()
+        setFocusedIndex(Math.min(idx + 1, maxIndex))
+        break
+      case "ArrowUp":
+        e.preventDefault()
+        setFocusedIndex(Math.max(idx - 1, 0))
+        break
+      case "Home":
+        e.preventDefault()
+        setFocusedIndex(0)
+        break
+      case "End":
+        e.preventDefault()
+        setFocusedIndex(maxIndex)
+        break
+      case "Enter":
+        e.preventDefault()
+        setSelectedTransaction(transactions[idx])
+        break
+    }
+  }
+
+  useEffect(() => {
+    if (focusedIndex === -1) return
+    rowVirtualizer.scrollToIndex(focusedIndex, { align: "center" })
+  }, [focusedIndex, rowVirtualizer, transactions.length])
 
   // Shared header rendering
   const renderHeader = () => (
@@ -204,17 +250,17 @@ export function TransactionTable() {
   )
 
   // Shared row rendering for the data table
-  const renderRow = (txn: Transaction, offsetY: number) => (
+  const renderRow = (txn: Transaction, offsetY: number, index: number) => (
     <div
       key={txn.id}
-      role="button"
+      role="row"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          setSelectedTransaction(txn)
-        }
-      }}
+      aria-rowindex={index + 1}
+      aria-setsize={transactions.length}
+      aria-posinset={index + 1}
+      aria-selected={selectedTransaction?.id === txn.id}
+      ref={focusedIndex === index ? (el) => el?.focus() : undefined}
+      onKeyDown={(e) => handleRowKeyDown(e, index)}
       className={clsx(
         "absolute top-0 left-0 flex items-center border-b border-border",
         "hover:bg-surface-hover focus:outline-none focus-visible:ring-2",
@@ -325,23 +371,45 @@ export function TransactionTable() {
           </div>
           <div className="flex h-full items-center justify-center py-12">
             <div className="sharp-sm border border-border bg-surface-hover px-6 py-4 text-center">
-              <p className="mb-1 text-xs font-mono uppercase tracking-wider text-text-secondary">
-                No transactions match
-              </p>
-              <p className="text-xs font-mono text-foreground">
-                Try adjusting your filters or clearing them to see all{" "}
-                {allTransactions.length.toLocaleString()} transactions
-              </p>
-              <button
-                onClick={clearFilters}
-                className={clsx(
-                  "sharp-sm mt-3 px-3 py-1 text-xs font-mono",
-                  "border border-border text-accent hover:text-foreground",
-                  "hover:bg-surface-hover transition-base",
-                )}
-              >
-                CLEAR FILTERS
-              </button>
+              {allTransactions.length === 0 ? (
+                <>
+                  <p className="mb-1 text-xs font-mono uppercase tracking-wider text-text-secondary">
+                    No transactions yet
+                  </p>
+                  <p className="text-xs font-mono text-foreground">
+                    Check back after your first payment settles.
+                  </p>
+                </>
+              ) : !totalFiltered ? (
+                <>
+                  <p className="mb-1 text-xs font-mono uppercase tracking-wider text-text-secondary">
+                    No transactions match
+                  </p>
+                  <p className="text-xs font-mono text-foreground">
+                    Try adjusting your filters or clearing them to see all{" "}
+                    {allTransactions.length.toLocaleString()} transactions
+                  </p>
+                  <button
+                    onClick={clearFilters}
+                    className={clsx(
+                      "sharp-sm mt-3 px-3 py-1 text-xs font-mono",
+                      "border border-border text-accent hover:text-foreground",
+                      "hover:bg-surface-hover transition-base",
+                    )}
+                  >
+                    CLEAR FILTERS
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-1 text-xs font-mono uppercase tracking-wider text-text-secondary">
+                    No transactions on this page
+                  </p>
+                  <p className="text-xs font-mono text-foreground">
+                    Showing {totalFiltered} of {allTransactions.length.toLocaleString()} matched transactions
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -352,9 +420,19 @@ export function TransactionTable() {
   return (
     <div className="sharp-sm glass h-full w-full flex flex-col">
       <FilterBar
-        resultCount={transactions.length}
+        resultCount={totalFiltered}
         totalCount={allTransactions.length}
       />
+
+      {/* ARIA live region for sort/filter/pagination announcements */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {totalFiltered} of {allTransactions.length} transactions match your filters.
+        Page {currentPage} of {totalPages}. Sorted by {sortKey} {sortOrder === "asc" ? "ascending" : "descending"}.
+      </div>
 
       <div
         ref={parentRef}
@@ -372,8 +450,79 @@ export function TransactionTable() {
           {/* Virtual rows */}
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const txn = transactions[virtualRow.index]
-            return renderRow(txn, virtualRow.start)
+            return renderRow(txn, virtualRow.start, virtualRow.index)
           })}
+        </div>
+      </div>
+
+      {/* Pagination controls */}
+      <div className="sharp-sm flex items-center justify-between border-t border-border px-3 py-2 sm:px-4">
+        <span className="text-xs font-mono text-text-secondary">
+          {totalFiltered === 0
+            ? "0 results"
+            : `${((currentPage - 1) * pageSize) + 1}-${Math.min(currentPage * pageSize, totalFiltered)} of ${totalFiltered.toLocaleString()} results`}
+        </span>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+            className={clsx(
+              "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+              "px-2 py-1 text-xs font-mono",
+              "text-text-secondary hover:text-foreground hover:bg-surface-hover",
+              "border border-border transition-base",
+              currentPage === 1 && "opacity-30 cursor-not-allowed",
+            )}
+            aria-label="First page"
+          >
+            «
+          </button>
+          <button
+            onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+            disabled={currentPage === 1}
+            className={clsx(
+              "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+              "px-2 sm:px-3 py-1 text-xs font-mono",
+              "text-text-secondary hover:text-foreground hover:bg-surface-hover",
+              "border border-border transition-base",
+              currentPage === 1 && "opacity-30 cursor-not-allowed",
+            )}
+            aria-label="Previous page"
+          >
+            PREV
+          </button>
+          <span className="text-xs font-mono text-text-secondary">
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={clsx(
+              "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+              "px-3 py-1 text-xs font-mono",
+              "text-text-secondary hover:text-foreground hover:bg-surface-hover",
+              "border border-border transition-base",
+              currentPage === totalPages && "opacity-30 cursor-not-allowed",
+            )}
+            aria-label="Next page"
+          >
+            NEXT
+          </button>
+          <button
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+            className={clsx(
+              "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+              "px-2 py-1 text-xs font-mono",
+              "text-text-secondary hover:text-foreground hover:bg-surface-hover",
+              "border border-border transition-base",
+              currentPage === totalPages && "opacity-30 cursor-not-allowed",
+            )}
+            aria-label="Last page"
+          >
+            »
+          </button>
         </div>
       </div>
 

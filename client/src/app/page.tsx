@@ -17,8 +17,20 @@ export default function HomePage() {
   const { setTransactions, setLoading, setError } = useTransactionStore()
   const { setBalance, setRewards } = useRewardsStore()
 
-  // SWR caches data client-side; Zustand holds it for instant UI updates
-  const { data: txnData, error: txnError } = useSWR("/api/transactions", () => fetchTransactions())
+  // SWR caches data client-side; Zustand holds it for instant UI updates.
+  // For the 2MB transactions dataset, disable focus revalidation to avoid
+  // wasteful re-fetches on tab-switch; extend deduping/tTL for better caching.
+  const { data: txnData, error: txnError } = useSWR(
+    "/api/transactions",
+    () => fetchTransactions(),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60_000,
+      ttl: 300_000,
+    },
+  )
+  // Balance and rewards are small payloads (<1KB) — keep default SWR config
+  // so they benefit from focus revalidation for freshness.
   const { data: balanceData } = useSWR("/api/balance", () => fetchBalance())
   const { data: rewardsData } = useSWR("/api/rewards", () => fetchRewards())
 

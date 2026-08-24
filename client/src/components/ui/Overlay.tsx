@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import { clsx } from "clsx"
 
@@ -41,12 +41,17 @@ export function Overlay({
   className,
   children,
 }: OverlayProps) {
-  // Prevent body scroll when overlay is open
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Prevent body scroll + trap focus inside the overlay when open
   useEffect(() => {
     if (!isOpen) return
 
     const original = document.body.style.overflow
     document.body.style.overflow = "hidden"
+
+    // Save the previously focused element so we can restore it
+    const previouslyFocused = document.activeElement as HTMLElement | null
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -54,11 +59,38 @@ export function Overlay({
       }
     }
 
+    const handleTabTrap = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !contentRef.current) return
+
+      const focusable = contentRef.current.querySelectorAll<HTMLElement>(
+        "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+      )
+      if (focusable.length === 0) return
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
     document.addEventListener("keydown", handleEscape)
+    document.addEventListener("keydown", handleTabTrap)
 
     return () => {
       document.body.style.overflow = original
       document.removeEventListener("keydown", handleEscape)
+      document.removeEventListener("keydown", handleTabTrap)
+      previouslyFocused?.focus()
     }
   }, [isOpen, onClose])
 
@@ -71,6 +103,7 @@ export function Overlay({
     >
       {/* Content area — clicks here don't close (stopPropagation) */}
       <div
+        ref={contentRef}
         className={clsx(
           "sharp-sm m-2 flex flex-col flex-1 overflow-y-auto bg-surface",
           className,

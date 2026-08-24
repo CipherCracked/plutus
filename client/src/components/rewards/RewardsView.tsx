@@ -9,18 +9,32 @@ export function RewardsView() {
     useRewardsStore()
 
   const handleRedeem = async () => {
-    if (!selectedReward) return
+    if (!selectedReward || !balance) return
 
     const store = useRewardsStore.getState()
+    const cost = selectedReward.coin_cost
+
+    // Snapshot current balance for rollback
+    const previousBalance = { ...balance }
+
+    // Optimistically deduct coins immediately
     store.setRedemptionStatus("confirming")
+    store.setBalance({ ...balance, balance: balance.balance - cost })
 
     try {
       const result = await redeemReward(selectedReward.id)
+      // Server confirmed — keep the optimistic update (or use server result)
+      store.setBalance({ ...balance, balance: result.new_balance })
       store.setRedemptionStatus("success")
-      store.setBalance({ ...balance!, balance: result.new_balance })
+      // Clear selection: redemption is complete
+      store.setSelectedReward(null)
     } catch (err) {
+      // Rollback: restore previous balance
+      store.setBalance(previousBalance)
       store.setRedemptionStatus("error")
-      store.setRedemptionError(err instanceof Error ? err.message : "Redemption failed")
+      store.setRedemptionError(
+        err instanceof Error ? err.message : "Redemption failed",
+      )
     }
   }
 
