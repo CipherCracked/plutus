@@ -14,7 +14,7 @@
 
 interface LogoProps {
   variant?: "icon" | "full"
-  size?: "sm" | "md" | "lg"
+  size?: "sm" | "md" | "lg" | "xl"
   className?: string
 }
 
@@ -22,13 +22,15 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
   const iconSize = {
     sm: 24,
     md: 32,
-    lg: 48,
+    lg: 64,
+    xl: 80,
   }[size]
 
   const fullSizes = {
     sm: { width: 240, height: 80 },
     md: { width: 320, height: 108 },
     lg: { width: 400, height: 135 },
+    xl: { width: 480, height: 162 },
   }[size]
 
   if (variant === "full") {
@@ -49,19 +51,19 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
 
           <defs>
             <linearGradient id="navyGradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#173A73" />
-              <stop offset="100%" stopColor="#071C43" />
+              <stop offset="0%" stopColor="#d4af37" />
+              <stop offset="100%" stopColor="#b8860b" />
             </linearGradient>
 
             <linearGradient id="growthGradient" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#14D8D0" />
-              <stop offset="100%" stopColor="#79E0A2" />
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="100%" stopColor="#d4af37" />
             </linearGradient>
 
             <linearGradient id="swooshGradient" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#1BC8D5" />
-              <stop offset="55%" stopColor="#36D9C6" />
-              <stop offset="100%" stopColor="#85E4A0" />
+              <stop offset="0%" stopColor="#e5e5e5" />
+              <stop offset="55%" stopColor="#d4af37" />
+              <stop offset="100%" stopColor="#d4af37" />
             </linearGradient>
           </defs>
 
@@ -72,7 +74,7 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
           />
 
           {/* Inner vertical cut to make P more geometric */}
-          <rect x="440" y="190" width="105" height="300" fill="#ffffff" />
+          <rect x="440" y="190" width="105" height="300" fill="#0a0a0a" />
 
           {/* Growth bars */}
           <g fill="url(#growthGradient)">
@@ -108,8 +110,8 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
           </text>
 
           {/* Tagline */}
-          <rect x="105" y="900" width="100" height="4" rx="2" fill="#27CFC9" />
-          <rect x="995" y="900" width="100" height="4" rx="2" fill="#27CFC9" />
+          <rect x="105" y="900" width="100" height="4" rx="2" fill="#d4af37" />
+          <rect x="995" y="900" width="100" height="4" rx="2" fill="#d4af37" />
           <text
             x="600"
             y="913"
@@ -118,7 +120,7 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
             fontSize="30"
             fontWeight="500"
             letterSpacing="8"
-            fill="#5E718C"
+            fill="#9a9a9a"
           >
             INSIGHTS. REWARDS. GROWTH.
           </text>
@@ -145,19 +147,19 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
 
         <defs>
           <linearGradient id="navyGradient-icon" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#173A73" />
-            <stop offset="100%" stopColor="#071C43" />
+            <stop offset="0%" stopColor="#d4af37" />
+            <stop offset="100%" stopColor="#b8860b" />
           </linearGradient>
 
           <linearGradient id="growthGradient-icon" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#14D8D0" />
-            <stop offset="100%" stopColor="#79E0A2" />
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#d4af37" />
           </linearGradient>
 
           <linearGradient id="swooshGradient-icon" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#1BC8D5" />
-            <stop offset="55%" stopColor="#36D9C6" />
-            <stop offset="100%" stopColor="#85E4A0" />
+            <stop offset="0%" stopColor="#e5e5e5" />
+            <stop offset="55%" stopColor="#d4af37" />
+            <stop offset="100%" stopColor="#d4af37" />
           </linearGradient>
         </defs>
 
@@ -168,7 +170,7 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
         />
 
         {/* Inner vertical cut */}
-        <rect x="440" y="190" width="105" height="300" fill="#ffffff" />
+        <rect x="440" y="190" width="105" height="300" fill="#0a0a0a" />
 
         {/* Growth bars */}
         <g fill="url(#growthGradient-icon)">
