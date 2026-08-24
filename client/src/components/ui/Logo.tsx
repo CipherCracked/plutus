@@ -1,16 +1,16 @@
 /**
- * Plutus logo — coin + upward arrow.
+ * Plutus logo — bold geometric "P" with coin bowl + growth arrow.
  *
- * Visual language inspired by 2026 fintech trends (Brandframer, Zillion Designs):
- * - Radically simple: two elements only (coin circle + growth arrow)
- * - AI-resistant: precise geometric construction, non-standard proportions
- * - Conceptual: circle = coin/wealth, arrow = growth/earnings
- * - Modular: recognizable at 16px+ (arrowhead detail preserved at icon size)
+ * Visual language inspired by 2026 fintech trends:
+ * - Radically simple: single "P" letterform, no extra decoration
+ * - AI-resistant: precise geometric construction, custom proportions
+ * - Conceptual: P-bowl = coin (wealth), upward stem = growth (earnings)
+ * - Icon-first: works at app-icon size (16px+) without wordmark
  *
- * The "P" is encoded subtly: the arrow stem is the letter's vertical,
- * and the arrowhead sits where the bowl would begin. This makes the mark
- * read as both "growth" and "Plutus" without a wordmark — achieving the
- * 2026 trend of "symbol-only" identity that works on a crowded home screen.
+ * The "P" is the primary mark — immediately recognizable as the Plutus
+ * brand. The bowl is styled as a coin (gold ring with highlight arc),
+ * and the vertical stem terminates in an upward chevron (growth arrow).
+ * This keeps the symbol readable while encoding both wealth and growth.
  */
 
 interface LogoProps {
@@ -47,31 +47,49 @@ export function Logo({ size = "md", showText = false, className }: LogoProps) {
         xmlns="http://www.w3.org/2000/svg"
         className="text-accent"
       >
-        {/* Coin ring (wealth) */}
-        <circle
-          cx="12"
-          cy="12"
-          r="8.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
+        {/* P bowl — coin ring at top-left */}
+        <path
+          d="M7 6 L7 15 L13 15 C14.65 15 16 13.65 16 12 C16 10.35 14.65 9 13 9 L11 9 L11 6 Z"
+          fill="currentColor"
         />
 
-        {/* Growth arrow (earnings) — stems from coin, points upward */}
-        {/* The arrow stem doubles as the "P" letterform's vertical bar */}
-        <path
-          d="M12 6 L12 13 M9 9 L12 6 L15 9"
+        {/* Coin ring detail — outer edge on bowl */}
+        <circle
+          cx="10"
+          cy="10.5"
+          r="2.25"
+          stroke="currentColor"
+          strokeWidth="0.6"
+          opacity="0.3"
+        />
+
+        {/* P stem */}
+        <line
+          x1="7"
+          y1="15"
+          x2="7"
+          y2="19"
           stroke="currentColor"
           strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+
+        {/* Growth arrow — upward chevron at stem base */}
+        <path
+          d="M5.25 19 L7 17.25 L8.75 19"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.25"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
 
-        {/* Coin highlight — top-left quadrant, subtle "minted" sheen */}
+        {/* Coin highlight — subtle sheen on bowl */}
         <path
-          d="M5.5 11.5 C6 10 8.5 7.5 11.5 7.5 C14 7.5 16.5 9 17.5 11"
+          d="M8 8 C8.5 7.5 9.5 7.5 10 8 C10.5 8.5 10.5 9.5 10 10"
           stroke="currentColor"
-          strokeWidth="0.5"
-          opacity="0.25"
+          strokeWidth="0.4"
+          opacity="0.2"
           fill="none"
           strokeLinecap="round"
         />
