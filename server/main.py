@@ -72,7 +72,8 @@ allowed_origins = [
     for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ] or [
-    "https://plutus-drab.vercel.app",
+    "https://plutus-drab.vercel.app",              # production alias
+    "https://plutus-a9w2ox0xe-cipher-cracked.vercel.app",  # current deployment
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
