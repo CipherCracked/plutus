@@ -58,7 +58,7 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
       </svg>
       {showText && (
         <span className={`font-mono font-medium ${textSize} text-accent tracking-wider`}>
-          PLVTUS
+          Plutus
         </span>
       )}
     </div>
