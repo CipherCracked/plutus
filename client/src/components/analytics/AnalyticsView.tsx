@@ -1,6 +1,7 @@
 "use client"
 
 import useSWR from "swr"
+import { clsx } from "clsx"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -197,8 +198,8 @@ export function AnalyticsView() {
 
   return (
     <div className="sharp-sm glass h-full w-full flex flex-col">
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4 p-4">
+      {/* Summary cards — stack vertically on mobile */}
+      <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-3 sm:gap-4 sm:p-4">
         <SummaryCard
           label="Total Spent"
           value={totalAmount.toLocaleString("en-IN", {
@@ -221,10 +222,10 @@ export function AnalyticsView() {
         />
       </div>
 
-      {/* Charts grid */}
-      <div className="grid grid-cols-2 gap-4 p-4 pt-0">
+      {/* Charts grid — stack vertically on mobile */}
+      <div className="grid grid-cols-1 gap-3 p-3 pt-0 sm:grid-cols-2 sm:gap-4 sm:p-4">
         {/* Category breakdown — clickable bars */}
-        <div className="sharp-sm h-64 w-full bg-surface border border-border p-3">
+        <div className="sharp-sm h-48 w-full bg-surface border border-border p-2 sm:h-64 sm:p-3">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-xs font-mono uppercase tracking-wider text-text-secondary">
               Spend by Category
@@ -232,7 +233,11 @@ export function AnalyticsView() {
             {activeCategory && (
               <button
                 onClick={() => setFilters({ category: [] })}
-                className="sharp-sm px-2 py-0.5 text-xs font-mono text-accent hover:text-foreground hover:bg-surface-hover transition-base"
+                className={clsx(
+                  "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+                  "px-2 py-0.5 text-xs font-mono text-accent",
+                  "hover:text-foreground hover:bg-surface-hover transition-base",
+                )}
                 title="Clear category filter"
               >
                 × CLEAR
@@ -248,7 +253,7 @@ export function AnalyticsView() {
         </div>
 
         {/* Monthly trend */}
-        <div className="sharp-sm h-64 w-full bg-surface border border-border p-3">
+        <div className="sharp-sm h-48 w-full bg-surface border border-border p-2 sm:h-64 sm:p-3">
           <h3 className="mb-2 text-xs font-mono uppercase tracking-wider text-text-secondary">
             Monthly Trend
           </h3>
@@ -271,7 +276,7 @@ function SummaryCard({
   valueClass?: string
 }) {
   return (
-    <div className="sharp-sm bg-surface border border-border p-4">
+    <div className="sharp-sm bg-surface border border-border p-3 sm:p-4">
       <label className="block text-xs font-mono uppercase tracking-wider text-text-secondary">
         {label}
       </label>

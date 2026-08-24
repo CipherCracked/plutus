@@ -1,26 +1,27 @@
 "use client"
 
-import { useUIStore } from "@/stores/ui-store"
+import { Logo } from "@/components/ui/Logo"
+import { useMediaQuery } from "@/hooks/useMediaQuery"
+import { clsx } from "clsx"
 
 export function Header() {
-  const { darkMode, toggleDarkMode } = useUIStore()
+  // On mobile (<640px), use icon-only logo to conserve vertical space
+  // (IPD 3: mobile-header-and-detail)
+  const isDesktop = useMediaQuery("(min-width: 640px)")
 
   return (
-    <header className="sharp-sm glass flex items-center justify-between px-4 py-2.5">
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-mono tracking-wider text-accent">
-          PLVTUS
-        </span>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <button
-          onClick={toggleDarkMode}
-          className="sharp-sm p-1.5 text-text-secondary hover:text-foreground transition-base"
-          title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {darkMode ? "☀️" : "🌙"}
-        </button>
+    <header
+      className={clsx(
+        "sharp-sm glass flex items-center justify-between px-4 py-2.5",
+        "transition-base",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {isDesktop ? (
+          <Logo variant="full" size="sm" />
+        ) : (
+          <Logo variant="icon" size="md" />
+        )}
       </div>
     </header>
   )
