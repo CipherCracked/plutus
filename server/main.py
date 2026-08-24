@@ -64,10 +64,19 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS — allows the Next.js frontend (localhost:3000) to call the API
+# CORS — only the origins listed here may call the API from a browser.
+# Set ALLOWED_ORIGINS (comma-separated) in production, e.g. on Render:
+#   ALLOWED_ORIGINS=https://plutus.vercel.app
+# Unset (local dev), it falls back to the Next.js dev server.
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+] or ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: restrict to your frontend origin in production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

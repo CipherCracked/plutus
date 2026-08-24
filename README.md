@@ -119,7 +119,7 @@ Not deployed — running locally only (24h window went into depth over deploymen
 - `npm run build` fails on the development machine used to build this (Turbopack PostCSS worker exits with `0xc0000142` on Windows). Verified pre-existing on a clean checkout — `next dev` runs the app fine.
 - The full dataset ships to the browser once (~2 MB JSON). Fine at 10k rows; past ~50k you'd want the server-side route we consciously skipped.
 - Redemption atomicity comes from running check-deduct-log in one database transaction. It does not take a row lock (`SELECT … FOR UPDATE`) — correct for a single-user demo, not for concurrent multi-user writes.
-- CORS currently allows all origins (`allow_origins=["*"]`) — flagged with a TODO to restrict in production.
+- CORS is a strict origin allowlist, not `*`: the backend serves only origins in its `ALLOWED_ORIGINS` env var (comma-separated), falling back to the local dev server when unset. A deployed backend **must** set it to the frontend's origin (e.g. on Render: `ALLOWED_ORIGINS=https://<frontend>.vercel.app`) or browsers will block API calls.
 - One pre-existing ESLint warning from `@tanstack/react-virtual` (React Compiler compatibility note); harmless.
 
 ## Project Structure
