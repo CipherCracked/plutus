@@ -86,10 +86,9 @@ is the right call because:
 2. At 360px screen width, 240px is 67% of the viewport — this is genuinely
    problematic for content layout.
 3. The icon-only "P" mark is distinct and recognizable at small sizes (per the
-   logo design iteration history).
-4. We can add a page title text "Transactions" next to the icon to maintain
-   context — this follows the mobile-first principle of "minimal top bar with
-   essential actions."
+   logo design iteration history). No page title text is shown alongside the
+   icon — the user's context is clear from the active Navigation button and
+   the page content below.
 
 The NN/g bottom sheet article and the pencil-and-paper filter article both
 emphasize that on mobile, every pixel of vertical space should serve a
@@ -130,22 +129,25 @@ Our detail panel is lengthy content — full-screen overlay is the correct patte
 
 ## Tradeoffs
 
-- **Option 1** means the merchant search and filter bar move down ~32px on
-  mobile vs the current ~80px logo. This is a net saving of ~48px.
+- **Option 1** means the merchant search and filter bar move down ~8px on
+  mobile vs the current ~80px logo (the icon is 40px). This is a net saving of
+  ~72px.
 - The full-screen detail overlay means the user can't see the underlying table
   while reading details. This is acceptable — the user's intent is to focus on
   a single transaction, not compare.
-- The icon-only logo requires a page title ("Transactions") to maintain context.
-  This title should use the same `font-mono` styling as other section labels for
-  consistency with raw-aesthetics.
+- The icon-only logo provides a clean, minimal top bar. Page context is conveyed
+  via the Navigation bar (active button) and the visible content.
 - Referenced in: `docs/mobile-responsiveness/intro.md`
-- Referenced in: `docs/mobile-responsiveness/itds/mobile-detail-panel.md`
+- Referenced in: `docs/mobile-responsiveness/ipds/mobile-filter-strategy.md`
+- Referenced in: `docs/mobile-responsiveness/itds/mobile-overlay-implementation.md`
+- Referenced in: `docs/mobile-responsiveness/itds/mobile-touch-targets.md`
 
 ## Notes
 
 - Header breakpoint: `sm:` (640px). Below `sm`, use `Logo variant="icon" size="md"`.
   Above `sm`, keep `Logo variant="full" size="sm"`.
-- Add a `span` with "Transactions" text next to the icon, visible only on `sm:`.
+- No page title text in the mobile header — the icon-only logo plus the
+  Navigation bar provides sufficient context.
 - Full-screen overlay uses `position: fixed; inset: 0;` with `z-index` higher
   than the filter overlay but lower than any dropdown/portal.
 - Overlay dismisses on: backdrop tap, Escape key, close button tap.

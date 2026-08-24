@@ -2,16 +2,23 @@
 
 ## Problem statement
 
-The transactions dashboard page, designed for a 2560px desktop viewport, degrades
-significantly on mobile screens (≤360px). The combined vertical footprint of the
-header, filter bar, sticky table header, and result-count actions pushes the
-actual transaction content into a small scrollable window. Beyond vertical
-space, the table's column widths (260px merchant alone) overflow the 360px
-viewport, the dropdown triggers have touch targets smaller than 44px, and the
-transaction detail slide-over doesn't adapt to narrow screens. The overall
-mobile experience is functional but painful: the user sees a collapsed filter
-bar, must scroll to find transactions, and struggles with cramped columns and
-undersized tap targets.
+The application, designed for a 2560px desktop viewport, degrades significantly
+on mobile screens (≤360px). This affects all three views — Transactions,
+Analytics, and Rewards — as well as the shared Header and Navigation components.
+
+On the **Transactions** page, the combined vertical footprint of the header,
+filter bar, sticky table header, and result-count actions pushes the actual
+transaction content into a small scrollable window. The table's column widths
+(260px merchant alone) overflow the 360px viewport, the dropdown triggers have
+touch targets smaller than 44px, and the transaction detail slide-over doesn't
+adapt to narrow screens.
+
+On the **Analytics** page, summary cards (`grid-cols-3`), charts (`grid-cols-2`),
+and a 256px chart height produce cramped, unreadable layouts on mobile. On the
+**Rewards** page, the reward catalogue grid (`grid-cols-2`) and small button
+padding (`py-1.5`) create crowded cards and undersized tap targets. The
+**Navigation** bar has 32px-tall buttons that fall below the 44px minimum touch
+target.
 
 ## Background and context
 
@@ -57,17 +64,22 @@ Specific mobile issues identified:
 1. **Filter bar vertical overflow** — 8 controls + pills stack into 15+ rows on mobile,
    consuming 400–500px of the 640px viewport.
 2. **Table column overflow** — merchant column alone is 260px; the total column width
-   (140+260+140+120+100+140 = 900px) does not fit in 360px. The current
-   `overflow-x-hidden` on the scroll container clips content rather than enabling
-   horizontal scroll, making columns unreadable.
+   (900px desktop) does not fit in 360px and only takes ~50% of a wider desktop screen.
+   The current `overflow-x-hidden` on the scroll container clips content rather than
+   enabling horizontal scroll, making columns unreadable.
 3. **Touch target undersizing** — dropdown triggers are `h-8` (32px) with small text,
-   checkboxes are `h-3 w-3` (12px). The 44px minimum touch target (WCAG) is violated.
+   checkboxes are `h-3 w-3` (12px). The 44px minimum touch target (WCAG) is violated
+   across all pages (Table, FilterBar, Analytics charts, Rewards cards, Navigation buttons).
 4. **Header wasting space** — the full logo variant (`sm` size = 240×80px) on a 360px
    screen takes up nearly a third of the screen width and a lot of vertical space.
 5. **TransactionDetail slide-over** — positioned as a side panel, on mobile it may
    cover the full screen or be positioned off-screen.
 6. **Sticky header on scroll** — the 44px sticky table header eats into scroll space
    on mobile where viewport real estate is precious.
+7. **Analytics grid stacking** — summary cards (`grid-cols-3`) and charts
+   (`grid-cols-2`) with `h-64` charts overcrowd a 360px screen.
+8. **Rewards grid** — reward catalogue (`grid-cols-2`) and button padding
+   (`py-1.5`) produce cramped cards and undersized tap targets on mobile.
 
 ## Goals
 
@@ -123,19 +135,23 @@ Specific mobile issues identified:
 ## Problem tree
 
 ```text
-Transactions page is broken on mobile (360px)
+Mobile viewport (360px) is too narrow for all views (Transactions,
+Analytics, Rewards) plus the shared Header and Navigation
 ├── How should the filter bar adapt to show 8 controls without consuming
 │   more than ~150px of vertical space on mobile?
-├── How should the table columns resize or reflow to fit a 360px width
+├── How should table columns resize or reflow to fit a 360px width
 │   while remaining scannable (at least 4–5 rows visible)?
 ├── What touch targets in the current UI fall below the 44px minimum,
 │   and how should they be padded or resized for mobile?
-├── How should the header (logo) adapt on mobile — icon-only, compact
-│   full logo, or a different layout?
+├── How should the header (logo) adapt on mobile — icon-only or
+│   compact full logo?
 ├── How should the TransactionDetail panel behave on mobile — full-screen
 │   overlay, bottom sheet, or modal dialog?
-└── Is the sticky table header appropriate on mobile, or should it scroll
-    away to give more space to transaction rows?
+├── Should the sticky table header scroll away on mobile or stay visible?
+├── How should the Analytics summary cards and charts reflow on a 360px
+│   screen, and should chart heights shrink?
+└── How should the Rewards grid and card/button layout reflow on mobile,
+    and should button tap targets enlarge?
 ```
 
 ## Open questions

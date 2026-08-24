@@ -17,9 +17,12 @@
 | | Filter pills: make each pill `min-h-11` (full height = 44px would look chunky; instead pad the pill content and ensure the ⓧ button inside is `min-h-11 min-w-11`). |
 | | Clear All button: currently `h-8` equivalent. Change to `min-h-11`. |
 | | Merchant search input: already full-width in the overlay; the `py-1` + `text-xs` = ~32px height. Add `min-h-11` to the input container. |
+| | **Navigation buttons**: `px-3 py-1.5` = ~32px height. Add `min-h-11` on mobile only (`sm:min-h-8 sm:min-w-0` on larger screens). |
+| | **RewardsView CANCEL/REDEEM buttons**: `px-3 py-1.5` = ~32px. Same pattern: `min-h-11` on mobile, `sm:min-h-8` on desktop. |
+| | **RewardCard**: the card itself is tappable — ensure `min-h-[44px]` on mobile for cards without much content. |
 | **Tradeoffs** | |
 | | - Some elements will have visual padding that makes adjacent spacing feel looser. This is acceptable — raw aesthetics values function over tight packing. |
-| | - On desktop, the 44px minimum doesn't change anything (desktop targets are already 32px+ and mouse precision is higher). |
+| | - On desktop, the 44px minimum doesn't change anything (desktop targets are already 32px+ and mouse precision is higher). Touch target expansion is mobile-only via `sm:` overrides (e.g., `min-h-[44px] sm:min-h-8 sm:min-w-0`). |
 | | - The checkbox inside a dropdown: the label is already `flex items-center`, so wrapping in `min-h-11` just adds vertical padding. The checkbox graphic stays `h-3 w-3`. |
 | | - The sort header at `min-h-11` inside the 44px HEADER_HEIGHT means no extra space needed — just ensure the button fills the header height. |
 | **Notes** | |

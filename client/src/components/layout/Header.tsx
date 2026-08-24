@@ -5,8 +5,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { clsx } from "clsx"
 
 export function Header() {
-  // On mobile (<640px), use icon-only logo + page title text
-  // to conserve vertical space (IPD 3: mobile-header-and-detail)
+  // On mobile (<640px), use icon-only logo to conserve vertical space
+  // (IPD 3: mobile-header-and-detail)
   const isDesktop = useMediaQuery("(min-width: 640px)")
 
   return (
@@ -20,12 +20,7 @@ export function Header() {
         {isDesktop ? (
           <Logo variant="full" size="sm" />
         ) : (
-          <>
-            <Logo variant="icon" size="md" />
-            <span className="text-xs font-mono uppercase tracking-wider text-text-secondary">
-              Transactions
-            </span>
-          </>
+          <Logo variant="icon" size="md" />
         )}
       </div>
     </header>
