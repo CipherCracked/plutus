@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createPortal } from "react-dom"
 import { useTransactionStore } from "@/stores/transaction-store"
 import { useDropdown } from "@/hooks/useDropdown"
+import { Overlay } from "@/components/ui/Overlay"
 import { clsx } from "clsx"
 
 const STATUS_OPTIONS = ["SUCCESS", "FAILED", "PENDING"]
@@ -56,9 +57,9 @@ function DropdownFilter({
         ref={triggerRef}
         onClick={toggle}
         className={clsx(
-          "sharp-sm flex h-8 w-48 cursor-pointer items-center justify-between",
+          "sharp-sm flex h-11 w-48 cursor-pointer items-center justify-between",
           "bg-surface border border-border px-2 py-1 text-xs font-mono text-foreground",
-          "focus-within:ring-1 focus-within:ring-accent",
+          "focus-within:ring-1 focus-within:ring-accent min-h-[44px] min-w-[44px]",
           "transition-base",
         )}
       >
@@ -99,7 +100,8 @@ function DropdownFilter({
                 <label
                   key={opt}
                   className={clsx(
-                    "flex items-center gap-2 px-2 py-1 text-xs font-mono cursor-pointer",
+                    "sharp-sm flex min-h-[44px] min-w-[44px] items-center gap-2",
+                    "px-2 py-1 text-xs font-mono cursor-pointer",
                     "hover:bg-surface-hover transition-base",
                   )}
                 >
@@ -107,7 +109,7 @@ function DropdownFilter({
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleOption(opt)}
-                    className="sharp-sm h-3 w-3 cursor-pointer accent-accent"
+                    className="sharp-sm h-4 w-4 cursor-pointer accent-accent min-h-[44px]"
                   />
                   <span
                     className={clsx(
@@ -132,8 +134,169 @@ interface FilterBarProps {
   totalCount: number
 }
 
+/**
+ * All 8 filter controls — shared between desktop grid and mobile overlay.
+ * Extracted to avoid duplication (IPD 1: mobile-filter-strategy).
+ */
+function FilterControls({
+  filters,
+  setFilters,
+}: {
+  filters: {
+    search: string
+    category: string[]
+    status: string[]
+    payment_method: string[]
+    date_from: string | null
+    date_to: string | null
+    amount_min: number | null
+    amount_max: number | null
+  }
+  setFilters: (updates: Partial<typeof filters>) => void
+}) {
+  return (
+    <>
+      {/* GROUP: Search */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+          Merchant
+        </label>
+        <input
+          type="text"
+          placeholder="Search merchants..."
+          value={filters.search}
+          onChange={(e) => setFilters({ search: e.target.value })}
+          className={clsx(
+            "sharp-sm w-full max-w-sm bg-surface border border-border",
+            "px-2 py-1 text-xs font-mono text-foreground",
+            "placeholder:text-text-secondary min-h-[44px]",
+            "focus:outline-none focus:ring-1 focus:ring-accent",
+            "transition-base",
+          )}
+        />
+      </div>
+
+      {/* GROUP: Filter (multi-select dropdowns) */}
+      <div className="flex flex-col gap-3">
+        <span className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+          Filter
+        </span>
+        <DropdownFilter
+          label="Category"
+          options={CATEGORY_OPTIONS}
+          selected={filters.category}
+          onChange={(vals) => setFilters({ category: vals })}
+          placeholder="All categories"
+        />
+        <DropdownFilter
+          label="Status"
+          options={STATUS_OPTIONS}
+          selected={filters.status}
+          onChange={(vals) => setFilters({ status: vals })}
+          placeholder="All statuses"
+        />
+        <DropdownFilter
+          label="Payment"
+          options={PAYMENT_OPTIONS}
+          selected={filters.payment_method}
+          onChange={(vals) => setFilters({ payment_method: vals })}
+          placeholder="All payment methods"
+        />
+      </div>
+
+      {/* GROUP: Range (date + amount) */}
+      <div className="flex flex-col gap-3">
+        <span className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+          Range
+        </span>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+            Date From
+          </label>
+          <input
+            type="date"
+            value={filters.date_from || ""}
+            onChange={(e) => setFilters({ date_from: e.target.value || null })}
+            className={clsx(
+              "sharp-sm w-full bg-surface border border-border",
+              "px-2 py-1 text-xs font-mono text-foreground min-h-[44px]",
+              "focus:outline-none focus:ring-1 focus:ring-accent",
+              "transition-base",
+            )}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+            Date To
+          </label>
+          <input
+            type="date"
+            value={filters.date_to || ""}
+            onChange={(e) => setFilters({ date_to: e.target.value || null })}
+            className={clsx(
+              "sharp-sm w-full bg-surface border border-border",
+              "px-2 py-1 text-xs font-mono text-foreground min-h-[44px]",
+              "focus:outline-none focus:ring-1 focus:ring-accent",
+              "transition-base",
+            )}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+            Min Amount
+          </label>
+          <input
+            type="number"
+            placeholder="0"
+            value={filters.amount_min ?? ""}
+            onChange={(e) =>
+              setFilters({
+                amount_min: e.target.value
+                  ? Number(e.target.value)
+                  : null,
+              })
+            }
+            className={clsx(
+              "sharp-sm w-full bg-surface border border-border",
+              "px-2 py-1 text-xs font-mono text-foreground",
+              "placeholder:text-text-secondary min-h-[44px]",
+              "focus:outline-none focus:ring-1 focus:ring-accent",
+              "transition-base",
+            )}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+            Max Amount
+          </label>
+          <input
+            type="number"
+            placeholder="∞"
+            value={filters.amount_max ?? ""}
+            onChange={(e) =>
+              setFilters({
+                amount_max: e.target.value
+                  ? Number(e.target.value)
+                  : null,
+              })
+            }
+            className={clsx(
+              "sharp-sm w-full bg-surface border border-border",
+              "px-2 py-1 text-xs font-mono text-foreground",
+              "placeholder:text-text-secondary min-h-[44px]",
+              "focus:outline-none focus:ring-1 focus:ring-accent",
+              "transition-base",
+            )}
+          />
+        </div>
+      </div>
+    </>
+  )
+}
+
 export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
   const { filters, setFilters, clearFilters } = useTransactionStore()
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   // Collect active filters for display + removal
   const activeFilters: {
@@ -226,16 +389,16 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
   }
 
   return (
-    <div className="sharp-sm flex flex-col gap-3 border-b border-border p-3">
-      {/* Active filter pills */}
+    <div className="sharp-sm border-b border-border p-3">
+      {/* Active filter pills — visible on all screen sizes */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           {activeFilters.map((f) => (
             <div
               key={f.key}
               className={clsx(
-                "sharp-sm flex items-center gap-1.5 bg-surface-hover",
-                "border border-border px-2 py-0.5",
+                "sharp-sm flex min-h-[44px] items-center gap-1.5",
+                "bg-surface-hover border border-border px-2 py-0.5",
               )}
             >
               <span className="text-xs font-mono text-text-secondary">
@@ -247,7 +410,8 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
               <button
                 onClick={f.onRemove}
                 className={clsx(
-                  "sharp-sm text-text-secondary hover:text-accent",
+                  "sharp-sm flex min-h-[44px] min-w-[44px] items-center",
+                  "justify-center text-text-secondary hover:text-accent",
                   "hover:bg-surface transition-base",
                 )}
                 aria-label={`Remove ${f.label} filter`}
@@ -259,14 +423,11 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
         </div>
       )}
 
-      {/* Filter groups — responsive grid */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-x-4">
-        {/* GROUP: Search */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-mono uppercase tracking-wider text-text-secondary sm:hidden">
-            Search
-          </label>
-          <div className="flex items-end gap-1.5 sm:items-end">
+      {/* --- DESKTOP: Full filter bar (hidden on mobile) --- */}
+      <div className="hidden sm:block">
+        <div className="grid grid-cols-3 gap-x-4">
+          {/* GROUP: Search */}
+          <div className="flex flex-col gap-1">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
                 Merchant
@@ -286,143 +447,208 @@ export function FilterBar({ resultCount, totalCount }: FilterBarProps) {
               />
             </div>
           </div>
+
+          {/* GROUP: Filter (multi-select dropdowns) */}
+          <div className="flex items-start gap-3">
+            <DropdownFilter
+              label="Category"
+              options={CATEGORY_OPTIONS}
+              selected={filters.category}
+              onChange={(vals) => setFilters({ category: vals })}
+              placeholder="All categories"
+            />
+            <DropdownFilter
+              label="Status"
+              options={STATUS_OPTIONS}
+              selected={filters.status}
+              onChange={(vals) => setFilters({ status: vals })}
+              placeholder="All statuses"
+            />
+            <DropdownFilter
+              label="Payment"
+              options={PAYMENT_OPTIONS}
+              selected={filters.payment_method}
+              onChange={(vals) => setFilters({ payment_method: vals })}
+              placeholder="All payment methods"
+            />
+          </div>
+
+          {/* GROUP: Range (date + amount) */}
+          <div className="flex items-start gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+                Date From
+              </label>
+              <input
+                type="date"
+                value={filters.date_from || ""}
+                onChange={(e) => setFilters({ date_from: e.target.value || null })}
+                className={clsx(
+                  "sharp-sm w-36 bg-surface border border-border",
+                  "px-2 py-1 text-xs font-mono text-foreground",
+                  "focus:outline-none focus:ring-1 focus:ring-accent",
+                  "transition-base",
+                )}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+                Date To
+              </label>
+              <input
+                type="date"
+                value={filters.date_to || ""}
+                onChange={(e) => setFilters({ date_to: e.target.value || null })}
+                className={clsx(
+                  "sharp-sm w-36 bg-surface border border-border",
+                  "px-2 py-1 text-xs font-mono text-foreground",
+                  "focus:outline-none focus:ring-1 focus:ring-accent",
+                  "transition-base",
+                )}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+                Min Amount
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={filters.amount_min ?? ""}
+                onChange={(e) =>
+                  setFilters({
+                    amount_min: e.target.value
+                      ? Number(e.target.value)
+                      : null,
+                  })
+                }
+                className={clsx(
+                  "sharp-sm w-28 bg-surface border border-border",
+                  "px-2 py-1 text-xs font-mono text-foreground",
+                  "placeholder:text-text-secondary",
+                  "focus:outline-none focus:ring-1 focus:ring-accent",
+                  "transition-base",
+                )}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
+                Max Amount
+              </label>
+              <input
+                type="number"
+                placeholder="∞"
+                value={filters.amount_max ?? ""}
+                onChange={(e) =>
+                  setFilters({
+                    amount_max: e.target.value
+                      ? Number(e.target.value)
+                      : null,
+                  })
+                }
+                className={clsx(
+                  "sharp-sm w-28 bg-surface border border-border",
+                  "px-2 py-1 text-xs font-mono text-foreground",
+                  "placeholder:text-text-secondary",
+                  "focus:outline-none focus:ring-1 focus:ring-accent",
+                  "transition-base",
+                )}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* GROUP: Filter (multi-select dropdowns) */}
-        <div className="flex flex-col gap-2.5 sm:items-center sm:gap-3 sm:flex-row sm:flex-wrap">
-          <span className="hidden sm:hidden text-xs font-mono uppercase tracking-wider text-text-secondary">
-            Filter
-          </span>
-          <DropdownFilter
-            label="Category"
-            options={CATEGORY_OPTIONS}
-            selected={filters.category}
-            onChange={(vals) => setFilters({ category: vals })}
-            placeholder="All categories"
-          />
-          <DropdownFilter
-            label="Status"
-            options={STATUS_OPTIONS}
-            selected={filters.status}
-            onChange={(vals) => setFilters({ status: vals })}
-            placeholder="All statuses"
-          />
-          <DropdownFilter
-            label="Payment"
-            options={PAYMENT_OPTIONS}
-            selected={filters.payment_method}
-            onChange={(vals) => setFilters({ payment_method: vals })}
-            placeholder="All payment methods"
-          />
-        </div>
-
-        {/* GROUP: Range (date + amount) */}
-        <div className="flex flex-col gap-2.5 sm:items-center sm:gap-3 sm:flex-row sm:flex-wrap">
-          <span className="hidden sm:hidden text-xs font-mono uppercase tracking-wider text-text-secondary">
-            Range
-          </span>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
-              Date From
-            </label>
-            <input
-              type="date"
-              value={filters.date_from || ""}
-              onChange={(e) => setFilters({ date_from: e.target.value || null })}
+        {/* Desktop: result count + clear all */}
+        <div className="flex items-center justify-between pt-3">
+          <div className="text-xs font-mono text-text-secondary">
+            {resultCount.toLocaleString()} / {totalCount.toLocaleString()}{" "}
+            results
+          </div>
+          {activeFilters.length > 0 && (
+            <button
+              onClick={clearFilters}
               className={clsx(
-                "sharp-sm w-36 bg-surface border border-border",
-                "px-2 py-1 text-xs font-mono text-foreground",
-                "focus:outline-none focus:ring-1 focus:ring-accent",
+                "sharp-sm px-3 py-1 text-xs font-mono",
+                "text-text-secondary hover:text-foreground hover:bg-surface-hover",
                 "transition-base",
               )}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
-              Date To
-            </label>
-            <input
-              type="date"
-              value={filters.date_to || ""}
-              onChange={(e) => setFilters({ date_to: e.target.value || null })}
-              className={clsx(
-                "sharp-sm w-36 bg-surface border border-border",
-                "px-2 py-1 text-xs font-mono text-foreground",
-                "focus:outline-none focus:ring-1 focus:ring-accent",
-                "transition-base",
-              )}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
-              Min Amount
-            </label>
-            <input
-              type="number"
-              placeholder="0"
-              value={filters.amount_min ?? ""}
-              onChange={(e) =>
-                setFilters({
-                  amount_min: e.target.value
-                    ? Number(e.target.value)
-                    : null,
-                })
-              }
-              className={clsx(
-                "sharp-sm w-28 bg-surface border border-border",
-                "px-2 py-1 text-xs font-mono text-foreground",
-                "placeholder:text-text-secondary",
-                "focus:outline-none focus:ring-1 focus:ring-accent",
-                "transition-base",
-              )}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-mono uppercase tracking-wider text-text-secondary">
-              Max Amount
-            </label>
-            <input
-              type="number"
-              placeholder="∞"
-              value={filters.amount_max ?? ""}
-              onChange={(e) =>
-                setFilters({
-                  amount_max: e.target.value
-                    ? Number(e.target.value)
-                    : null,
-                })
-              }
-              className={clsx(
-                "sharp-sm w-28 bg-surface border border-border",
-                "px-2 py-1 text-xs font-mono text-foreground",
-                "placeholder:text-text-secondary",
-                "focus:outline-none focus:ring-1 focus:ring-accent",
-                "transition-base",
-              )}
-            />
-          </div>
+            >
+              CLEAR ALL
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Row actions: result count + clear */}
-      <div className="flex items-center justify-between">
-        <div className="text-xs font-mono text-text-secondary">
-          {resultCount.toLocaleString()} / {totalCount.toLocaleString()}{" "}
-          results
-        </div>
-        {activeFilters.length > 0 && (
+      {/* --- MOBILE: Compact summary bar (hidden on desktop) --- */}
+      <div className="block sm:hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-xs font-mono text-text-secondary">
+              {resultCount.toLocaleString()} / {totalCount.toLocaleString()}{" "}
+              results
+            </div>
+            {activeFilters.length > 0 && (
+              <span className="sharp-sm bg-surface-hover px-1.5 py-0.5 text-xs font-mono text-accent">
+                {activeFilters.length} active
+              </span>
+            )}
+          </div>
           <button
-            onClick={clearFilters}
+            onClick={() => setIsFilterOpen(true)}
             className={clsx(
-              "sharp-sm px-3 py-1 text-xs font-mono",
+              "sharp-sm flex min-h-[44px] min-w-[44px] items-center justify-center",
+              "px-3 py-1 text-xs font-mono",
               "text-text-secondary hover:text-foreground hover:bg-surface-hover",
-              "transition-base",
+              "border border-border transition-base",
             )}
           >
-            CLEAR ALL
+            FILTER
           </button>
-        )}
+        </div>
       </div>
+
+      {/* --- MOBILE: Filter overlay --- */}
+      <Overlay
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="FILTERS"
+        footer={
+          <>
+            <button
+              onClick={() => {
+                clearFilters()
+                setIsFilterOpen(false)
+              }}
+              className={clsx(
+                "sharp-sm flex min-h-[44px] min-w-[44px] items-center",
+                "px-4 py-1 text-xs font-mono",
+                "text-text-secondary hover:text-foreground hover:bg-surface-hover",
+                "border border-border transition-base",
+              )}
+            >
+              CLEAR
+            </button>
+            <button
+              onClick={() => setIsFilterOpen(false)}
+              className={clsx(
+                "sharp-sm flex min-h-[44px] items-center justify-center",
+                "px-4 py-1 text-xs font-mono text-accent",
+                "hover:text-foreground hover:bg-surface-hover",
+                "border border-accent transition-base",
+              )}
+            >
+              APPLY
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <FilterControls
+            filters={filters}
+            setFilters={setFilters}
+          />
+        </div>
+      </Overlay>
     </div>
   )
 }
