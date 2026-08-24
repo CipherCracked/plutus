@@ -1,12 +1,14 @@
 "use client"
 
+import { useSWRConfig } from "swr"
 import { useRewardsStore } from "@/stores/rewards-store"
-import { redeemReward } from "@/lib/api"
+import { redeemReward, fetchBalance } from "@/lib/api"
 import { clsx } from "clsx"
 
 export function RewardsView() {
   const { balance, rewards, selectedReward, redemptionStatus, redemptionError, setSelectedReward } =
     useRewardsStore()
+  const { mutate } = useSWRConfig()
 
   const handleRedeem = async () => {
     if (!selectedReward || !balance) return
@@ -22,9 +24,17 @@ export function RewardsView() {
     store.setBalance({ ...balance, balance: balance.balance - cost })
 
     try {
-      const result = await redeemReward(selectedReward.id)
-      // Server confirmed — keep the optimistic update (or use server result)
-      store.setBalance({ ...balance, balance: result.new_balance })
+      await redeemReward(selectedReward.id)
+
+      // Server confirmed — fetch the authoritative CoinBalance (new balance +
+      // updated total_earned / total_redeemed), then write it through BOTH
+      // caches. Writing only the Zustand store leaves the SWR "/api/balance"
+      // cache stale, and page.tsx re-syncs store-from-SWR on every refetch,
+      // which resurrects pre-redeem values until a manual reload.
+      const fresh = await fetchBalance()
+      store.setBalance(fresh)
+      void mutate("/api/balance", fresh, { revalidate: false })
+
       store.setRedemptionStatus("success")
       // Clear selection: redemption is complete
       store.setSelectedReward(null)

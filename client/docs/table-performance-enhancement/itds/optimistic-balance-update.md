@@ -183,6 +183,15 @@ sufficient for the assignment.
 
 ## Notes
 
+- **Two-cache write-through requirement (found in use)**: state flows
+  SWR → Zustand via the sync effect in `page.tsx`. An optimistic update that
+  writes ONLY the Zustand store leaves the SWR `/api/balance` cache stale;
+  every later SWR-driven sync resurrects pre-redeem values, so redemption
+  effects appeared only after a manual reload. On success, `handleRedeem`
+  now fetches the authoritative CoinBalance and writes it through both:
+  `store.setBalance(fresh)` + `mutate("/api/balance", fresh, { revalidate:
+  false })`. This also fixes stale `total_earned` / `total_redeemed`, which
+  the old `{ ...balance, balance: result.new_balance }` spread never updated.
 - The current synchronous flow is in `src/components/rewards/RewardsView.tsx`
   lines 11-25 (the `handleRedeem` function).
 - The rewards store is in `src/stores/rewards-store.ts` — has `setBalance`,
