@@ -1,11 +1,11 @@
 /**
- * Plutus logo — coin icon + "LUTUS" wordmark.
+ * Plutus logo — bold "P" icon + "LUTUS" wordmark.
  *
- * Per /fintech-ui-2026 skill: radical simplicity, raw aesthetics, dark-mode first.
+ * Per /fintech-ui-2026 skill — radical simplicity.
  *
- * The icon is a single coin (circle) with a bold "P" inside — geometric,
- * sharp corners on the P, no extra decoration. The wordmark "LUTUS" uses
- * the monospaced font for data-forward trust. Together: [🔵P] LUTUS = Plutus.
+ * The icon is a single bold geometric "P" — sharp 90° corners, no curves,
+ * no enclosing circle. The P is unmistakably a P (not H-like). Paired
+ * with "LUTUS" in monospace gold, the logo reads as "Plutus" at a glance.
  */
 
 interface LogoProps {
@@ -35,21 +35,13 @@ export function Logo({ size = "md", className }: LogoProps) {
         width={iconSize}
         height={iconSize}
         viewBox="0 0 24 24"
-        fill="none"
+        fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
         className="text-accent"
       >
-        {/* Coin ring */}
-        <circle
-          cx="12"
-          cy="12"
-          r="9"
-          stroke="currentColor"
-          strokeWidth="1.25"
-        />
-        {/* Bold P inside coin — sharp geometric letterform */}
+        {/* Bold geometric P — no enclosing circle to avoid H ambiguity */}
         <path
-          d="M8 7 L8 17 L10 17 L10 14 L14 14 L14 17 L16 17 L16 7 L14 7 L14 11 L10 11 L10 7 Z"
+          d="M7 6 L7 18 L9 18 L9 15 L13 15 L13 18 L15 18 L15 6 L13 6 L13 12 L9 12 L9 6 Z"
           fill="currentColor"
         />
       </svg>
