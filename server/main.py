@@ -46,10 +46,14 @@ if not DATABASE_URL:
 
 @contextmanager
 def get_db():
-    """Yield a database connection, closing it on exit."""
+    """Yield a database connection, committing/rolling back and closing on exit."""
     conn = psycopg2.connect(DATABASE_URL)
     try:
         yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -218,7 +222,7 @@ def redeem_reward(request: RedeemRequest):
                 "INSERT INTO redemptions (user_id, reward_id, coins_spent) VALUES (%s, %s, %s)",
                 (user_id, reward_id, coin_cost),
             )
-            conn.commit()
+    # Commit happens automatically in get_db() context manager on successful exit
 
     return RedeemResponse(
         success=True,

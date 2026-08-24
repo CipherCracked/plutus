@@ -24,6 +24,6 @@
 | | |   3. If `balance < coin_cost` → raise HTTP 402 |
 | | |   4. `UPDATE users SET coin_balance = %s WHERE id = %s` |
 | | |   5. `INSERT INTO redemptions (user_id, reward_id, coins_spent) VALUES (%s, %s, %s)` |
-| | |   6. `conn.commit()` → return `RedeemResponse(success=True, new_balance, message)` |
-| | | - On any exception: `conn.rollback()` is automatic via the `with conn:` context manager |
+| | |   6. `get_db()` auto-commits on successful exit → return `RedeemResponse(success=True, new_balance, message)` |
+| | | - On any exception: `conn.rollback()` is automatic via the `get_db()` context manager's try/except block |
 | | | - Referenced in: `docs/plutus-client/ipds/rewards-mechanics.md` (product decision on error UX) |
