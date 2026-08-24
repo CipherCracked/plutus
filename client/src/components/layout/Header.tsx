@@ -12,7 +12,10 @@ export function Header() {
   return (
     <header
       className={clsx(
-        "sharp-sm glass flex items-center justify-between px-4 py-2.5",
+        "sharp-sm flex items-center justify-between px-4 py-2.5",
+        // Solid true-black band — distinguishes the header from the
+        // translucent glass Navigation pill directly below it.
+        "bg-background border-b border-border",
         "transition-base",
       )}
     >
