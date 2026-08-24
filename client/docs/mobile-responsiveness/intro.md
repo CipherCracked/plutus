@@ -2,111 +2,163 @@
 
 ## Problem statement
 
-The transactions page filter bar, which works well on a 2560px desktop viewport, becomes
-unusable on mobile screens (≤360px). The three-group grid layout (Search, Filter, Range)
-stacks vertically, producing 15+ rows of controls — merchant search input, three multi-select
-dropdown triggers, two date pickers, two amount inputs, section labels, active filter pills,
-and a "Clear all" button. This vertical stack consumes a significant portion of the viewport
-height (roughly half the screen on a 360px × 640px device), leaving insufficient room for
-the transaction table below. Scrolling to reach the table after applying filters is
-frustrating, and the active filter pills (while necessary on desktop) add further vertical
-density.
+The transactions dashboard page, designed for a 2560px desktop viewport, degrades
+significantly on mobile screens (≤360px). The combined vertical footprint of the
+header, filter bar, sticky table header, and result-count actions pushes the
+actual transaction content into a small scrollable window. Beyond vertical
+space, the table's column widths (260px merchant alone) overflow the 360px
+viewport, the dropdown triggers have touch targets smaller than 44px, and the
+transaction detail slide-over doesn't adapt to narrow screens. The overall
+mobile experience is functional but painful: the user sees a collapsed filter
+bar, must scroll to find transactions, and struggles with cramped columns and
+undersized tap targets.
 
 ## Background and context
 
-The filter bar was redesigned as part of the `transactions-page-ux` problem folder, where the
-decision was made to use a responsive grid (`grid-cols-1 sm:grid-cols-3`) that stacks all
-three groups vertically on screens below 640px. This was the correct approach for grouping
-and scannability, but it was not evaluated against the actual viewport budget on a 360px
-mobile device. The current page structure is:
+The transactions page is built as:
 
 ```
-Header (logo)
-├── Filter bar (stacked on mobile: 11+ rows)
-│   ├── Active filter pills (3+ rows if filters active)
-│   ├── Merchant search
-│   ├── Category dropdown
-│   ├── Status dropdown
-│   ├── Payment dropdown
-│   ├── Date From
-│   ├── Date To
-│   ├── Min Amount
-│   └── Max Amount
-├── Results count + Clear all
-└── Virtualized transaction table (remaining space)
+Header (48px height) — full logo + "PLUTUS" wordmark
+├── Filter bar — 3-group grid, 8 controls, active pills
+│   ├── Active filter pills (variable height)
+│   ├── Merchant search input
+│   ├── Category / Status / Payment dropdowns (3)
+│   ├── Date From / Date To pickers (2)
+│   ├── Min / Max amount inputs (2)
+│   └── Results count + Clear all button
+├── Sticky table header (44px) — 6 columns
+│   ├── Date (140px)
+│   ├── Merchant (260px)       ← overflows 360px viewport by itself
+│   ├── Category (140px)
+│   ├── Amount (120px)
+│   ├── Coins (100px)
+│   └── Status (140px)
+└── Virtualized table body (48px rows)
+    ├── 9,960 rows, ~48px each
+    └── TransactionDetail slide-over (side panel)
 ```
 
-On a 360px × 640px viewport, the filter bar alone can occupy 400–500px of vertical space,
-leaving only 140–240px for the table — less than 5 rows of transactions.
+**Desktop viewport budget (2560px):**
+- Header: 48px
+- Filter bar: ~160px
+- Table header: 44px
+- Table rows: 48px each × ~12 visible = ~576px
+- **Total used: ~828px out of 1320px content area — comfortable**
+
+**Mobile viewport budget (360px × 640px):**
+- Header: 48px
+- Filter bar (stacked): 400–500px
+- Table header: 44px
+- Table rows: ~40px each (squeezed) × ~2 visible = ~80px
+- **Total used: ~572–672px — filter bar alone exceeds the table's visible area**
+
+Specific mobile issues identified:
+
+1. **Filter bar vertical overflow** — 8 controls + pills stack into 15+ rows on mobile,
+   consuming 400–500px of the 640px viewport.
+2. **Table column overflow** — merchant column alone is 260px; the total column width
+   (140+260+140+120+100+140 = 900px) does not fit in 360px. The current
+   `overflow-x-hidden` on the scroll container clips content rather than enabling
+   horizontal scroll, making columns unreadable.
+3. **Touch target undersizing** — dropdown triggers are `h-8` (32px) with small text,
+   checkboxes are `h-3 w-3` (12px). The 44px minimum touch target (WCAG) is violated.
+4. **Header wasting space** — the full logo variant (`sm` size = 240×80px) on a 360px
+   screen takes up nearly a third of the screen width and a lot of vertical space.
+5. **TransactionDetail slide-over** — positioned as a side panel, on mobile it may
+   cover the full screen or be positioned off-screen.
+6. **Sticky header on scroll** — the 44px sticky table header eats into scroll space
+   on mobile where viewport real estate is precious.
 
 ## Goals
 
-- The filter bar must occupy no more than ~25% of the viewport height on a 360px screen
-  when collapsed, so the transaction table remains the primary focus.
-- All 8 filter controls must remain accessible, but not all need to be simultaneously
-  visible on mobile.
-- The user must be able to see active filter state at a glance on mobile.
-- Transitions between collapsed/expanded states must be smooth (150ms ease-out per the
-  raw-aesthetics interaction language).
-- No feature regression on desktop — the grouped grid layout remains unchanged.
+- The entire above-the-table UI (header + filter + table header) must occupy no more
+  than 30% of viewport height on a 360px screen in the default (collapsed) state.
+- All 8 filter controls must be accessible on mobile, but not all need to be visible
+  simultaneously — a collapse/expand interaction is acceptable.
+- The table must show at least 4–5 transaction rows simultaneously on a 360px screen,
+  either through column resizing or horizontal scrolling.
+- All interactive elements (dropdowns, checkboxes, sort buttons, pills) must meet
+  the 44px minimum touch target size or be padded to reach it.
+- The header must adapt to mobile — either icon-only or a more compact full logo.
+- The TransactionDetail panel must work as a full-screen or bottom-sheet overlay on
+  mobile, not a side panel.
+- No feature regression on desktop — the desktop layout and behavior remain unchanged.
+- Raw-aesthetics visual language (sharp edges, monospace, high contrast) must be
+  preserved in all responsive states.
 
 ## Non-goals
 
 - Adding new filter types or changing the filter data model.
-- Changing the desktop layout or the 3-group organization.
-- Implementing a completely separate mobile view — the same component tree should serve
+- Rebuilding the virtualized table with a different library — `@tanstack/react-virtual`
+  stays.
+- Changing the underlying data model or API contract.
+- A separate mobile-only page or separate codebase — the same component tree serves
   both viewports via responsive Tailwind classes.
-- Hiding or removing the active filter pills — they are required for granular undo
-  (per the `transactions-page-ux` IPD decision).
+- Changing the dark-first color scheme or theme tokens from `globals.css`.
 
 ## Constraints
 
-- The `sm:` breakpoint is 640px; the mobile constraint is 360px (the assignment's
-  specified minimum width).
+- The `sm:` breakpoint is 640px; mobile constraint is 360px (assignment minimum width).
 - Tailwind CSS v4 is the only styling toolset.
-- The `@tanstack/react-virtual` table below must retain its scroll container and
-  virtual height calculation.
-- Raw-aesthetics visual language (sharp edges, monospaced, high contrast) must be preserved.
-- The filter bar is used inside `TransactionTable.tsx` which renders in both the
-  loading skeleton, empty state, and data state — the mobile solution must work in all
-  three contexts.
+- The `@tanstack/react-virtual` table must retain its virtual height calculation and
+  scroll container.
+- The Zustand 10k-row cache must persist — filtering stays instant client-side.
+- The page is rendered in all three states: loading skeleton, empty results, and data.
+  The mobile solution must work in all three.
+- The Header component is shared across the app — header changes must not break
+  other pages.
 
 ## Assumptions
 
-1. The user on mobile is more likely to use search + one or two filters, not all 8
-   simultaneously.
-2. The "Clear all" button is used less frequently than individual filter removal, so
-   it can be visually de-emphasized on mobile.
-3. The active filter pills are valuable enough to remain visible, but can use a more
-   compact style on mobile (smaller padding).
-4. The user accepts one additional interaction step (tap to expand) on mobile in
-   exchange for a much shorter collapsed filter bar.
+1. The mobile user is either browsing transactions or actively filtering — they
+   rarely need all 8 filters and 6 table columns visible simultaneously.
+2. The user on mobile scans transaction lists vertically, not horizontally.
+3. Touch targets below 44px are genuinely problematic (not just a guideline) —
+   especially the checkbox inputs inside dropdowns.
+4. The TransactionDetail slide-over on mobile works better as a full-height panel
+   or bottom sheet rather than a side panel.
+5. The logo in the header can be icon-only on mobile without losing brand recognition,
+   since the icon variant already exists.
 
 ## Problem tree
 
 ```text
-Mobile filter bar takes too much vertical space
-├── What is the optimal collapsed height for the mobile filter bar?
-├── Should the filter bar collapse into a summary bar (e.g., "3 filters | Search | Clear")
-│   and expand on tap, or should individual sections be collapsible/expandable?
-├── How should the active filter pills be presented on mobile to stay scannable
-│   while consuming minimal vertical space?
-├── What is the minimum number of filter controls visible in the collapsed state
-│   on a 360px screen, and which controls are essential?
-└── Should the merchant search always be visible in the collapsed state (since the
-    assignment requires "search merchant names as they type"), or can it also be
-    hidden behind an expand interaction?
+Transactions page is broken on mobile (360px)
+├── How should the filter bar adapt to show 8 controls without consuming
+│   more than ~150px of vertical space on mobile?
+├── How should the table columns resize or reflow to fit a 360px width
+│   while remaining scannable (at least 4–5 rows visible)?
+├── What touch targets in the current UI fall below the 44px minimum,
+│   and how should they be padded or resized for mobile?
+├── How should the header (logo) adapt on mobile — icon-only, compact
+│   full logo, or a different layout?
+├── How should the TransactionDetail panel behave on mobile — full-screen
+│   overlay, bottom sheet, or modal dialog?
+└── Is the sticky table header appropriate on mobile, or should it scroll
+    away to give more space to transaction rows?
 ```
 
 ## Open questions
 
-1. Should the collapsed filter bar show just the active filter count + result count,
-   or should it show a compact summary of the active filter values (e.g., "Shopping,
-   ₹500+")?
+1. **Filter bar collapse strategy**: Should the mobile filter bar collapse into a
+   summary bar ("3 filters | Clear all") that expands to show all controls in an
+   internal scroll container, or should it be a full-height overlay that covers
+   the table when open (like a mobile drawer)?
 
-2. On mobile, when the user expands the filter bar, should all 8 controls appear at once
-   (pushed table down temporarily), or should there be a scrollable container within the
-   expanded panel to avoid pushing the table entirely off-screen?
+2. **Table column strategy**: Should columns shrink proportionally to fit 360px
+   (merchant from 260px to ~90px, with text truncation), should the table allow
+   horizontal scrolling with `overflow-x-auto`, or should the table reformat into
+   a card-list layout on mobile (each transaction as a self-contained card)?
 
-3. Should the merchant search input be always visible in the collapsed mobile state
-   (taking ~60px of vertical space) so the user can search without expanding?
+3. **Header logo on mobile**: Should the header use the icon-only logo variant on
+   mobile (saving ~164px of vertical space vs the `sm` full variant), and should
+   there be a fallback page title text "Transactions" when the wordmark is hidden?
+
+4. **Touch target remediation**: Which specific controls need padding — the dropdown
+   triggers (currently 32px height), the checkboxes inside dropdowns (12px), the
+   sort buttons in the table header, or the filter pills themselves?
+
+5. **TransactionDetail on mobile**: Should the detail panel be a `position: fixed`
+   full-screen overlay, a `translate-y-[calc(100%-xxx)]` bottom sheet that snaps,
+   or a modal dialog with a backdrop? What gesture dismisses it (swipe down, backdrop
+   tap, or an explicit close button)?
