@@ -125,7 +125,7 @@ Note: the Render free tier sleeps after inactivity — the first request after a
 - `npm run build` fails on the development machine used to build this (Turbopack PostCSS worker exits with `0xc0000142` on Windows). Verified pre-existing on a clean checkout — `next dev` runs the app fine.
 - The full dataset ships to the browser once (~2 MB JSON). Fine at 10k rows; past ~50k you'd want the server-side route we consciously skipped.
 - Redemption atomicity comes from running check-deduct-log in one database transaction. It does not take a row lock (`SELECT … FOR UPDATE`) — correct for a single-user demo, not for concurrent multi-user writes.
-- CORS is a strict origin allowlist, not `*`: the backend serves only the deployed frontend (`https://plutus-drab.vercel.app`) plus local dev origins. Overridable via its `ALLOWED_ORIGINS` env var (comma-separated) — set it if the frontend ever moves to a new origin.
+- CORS is open (`allow_origins=["*"]`) — a deliberate choice for this public demo API, which uses no credentials or cookies (and Vercel mints a new origin per deployment). To lock it down, set the backend's `ALLOWED_ORIGINS` env var to a comma-separated list of allowed origins.
 - One pre-existing ESLint warning from `@tanstack/react-virtual` (React Compiler compatibility note); harmless.
 
 ## Project Structure
