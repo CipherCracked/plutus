@@ -10,7 +10,13 @@
 | **Why not optimistic locking** | Optimistic locking adds complexity (version column, retry loops) for a single-user demo where concurrent redemptions are unlikely. The single-request-per-user model makes pessimistic locking within a transaction sufficient and simpler. |
 | **Why not SELECT FOR UPDATE** | `SELECT ... FOR UPDATE` achieves the same isolation as the transaction approach but requires the caller to manage lock lifecycle explicitly. The implicit row lock acquired by `UPDATE users SET coin_balance = ... WHERE id = ... ORDER BY id LIMIT 1` within a transaction is cleaner and sufficient for this use case. | **TRADEOFFS** |
 | | | - The transaction holds a row lock on the users table for the duration of the redemption request. If a redemption takes a long time (unlikely), concurrent redemptions would queue. For a demo with 10k rows and <5ms per operation, this is irrelevant. |
-| | | - HTTP 402 (Payment Required) is non-standard for REST APIs but semantically correct for "insufficient balance." The frontend's `redeemReward()` function handles it by throwing an error with the status code in the message. |
+| | | - HTTP 402 (Payment Required): MDN describes 402 as "reserved for future use" |
+| | | but it is the canonical status for payment/credit scenarios. Research |
+| | | ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/402), |
+| | | [StackExchange discussion](https://softwareengineering.stackexchange.com/questions/436150)) |
+| | | confirms it is acceptable and semantically precise for "insufficient funds." |
+| | | Some HTTP clients lack first-class 402 handling, but the frontend's `fetch`|
+| | | wrapper treats it as a standard HTTP error — no special handling needed. |
 | | | - No retry logic on deadlock — if PostgreSQL raises a serialization failure (rare at this scale), the request returns a 500. Documented as a known limitation. | **NOTES** |
 | | | - Redemption flow within `/api/redeem`: |
 | | |   1. `SELECT id, name, coin_cost FROM rewards WHERE id = %s` → 404 if not found |
