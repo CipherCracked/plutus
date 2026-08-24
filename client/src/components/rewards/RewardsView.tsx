@@ -37,7 +37,7 @@ export function RewardsView() {
   return (
     <div className="sharp-sm glass h-full w-full flex flex-col">
       {/* Balance header */}
-      <div className="sharp-sm flex items-center justify-between border-b border-border p-4">
+      <div className="sharp-sm flex items-center justify-between border-b border-border p-3 sm:p-4">
         <div>
           <span className="block text-xs font-mono uppercase tracking-wider text-text-secondary">
             Coin Balance
@@ -76,9 +76,9 @@ export function RewardsView() {
         </div>
       )}
 
-      {/* Rewards catalogue */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+      {/* Rewards catalogue — single column on mobile */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 sm:gap-4">
           {rewards.map((reward) => (
             <RewardCard
               key={reward.id}
@@ -93,7 +93,7 @@ export function RewardsView() {
 
       {/* Redemption confirmation (bottom bar when reward selected) */}
       {selectedReward && (
-        <div className="sharp-sm flex items-center justify-between border-t border-border p-4">
+        <div className="sharp-sm flex items-center justify-between border-t border-border p-3 sm:p-4">
           <div>
             <span className="text-xs font-mono uppercase tracking-wider text-text-secondary">
               Redeem: {selectedReward.name}
@@ -106,7 +106,12 @@ export function RewardsView() {
           <div className="flex gap-2">
             <button
               onClick={() => setSelectedReward(null)}
-              className="sharp-sm px-3 py-1.5 text-xs font-mono text-text-secondary hover:text-foreground hover:bg-surface-hover transition-base"
+              className={clsx(
+                "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+                "px-3 py-1.5 text-xs font-mono",
+                "text-text-secondary hover:text-foreground hover:bg-surface-hover",
+                "transition-base",
+              )}
             >
               CANCEL
             </button>
@@ -116,7 +121,9 @@ export function RewardsView() {
                 redemptionStatus === "confirming" || !canAfford(selectedReward.coin_cost)
               }
               className={clsx(
-                "sharp-sm px-4 py-1.5 text-xs font-mono uppercase tracking-wider transition-base",
+                "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+                "px-4 py-1.5 text-xs font-mono uppercase tracking-wider",
+                "transition-base",
                 canAfford(selectedReward.coin_cost)
                   ? "bg-accent text-background hover:bg-accent-hover"
                   : "bg-border text-text-secondary cursor-not-allowed",
@@ -165,6 +172,7 @@ function RewardCard({
       onClick={onSelect}
       className={clsx(
         "sharp-sm cursor-pointer border p-3 transition-base",
+        "min-h-[44px] sm:min-h-0",
         selected
           ? "border-accent bg-surface-hover"
           : "border-border bg-surface hover:border-accent hover:bg-surface-hover",

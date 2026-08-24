@@ -19,7 +19,8 @@ export function Navigation() {
           key={item.id}
           onClick={() => setActiveView(item.id)}
           className={clsx(
-            "sharp-sm px-3 py-1.5 text-xs font-mono tracking-wider",
+            "sharp-sm flex min-h-[44px] min-w-[44px] sm:min-h-8 sm:min-w-0 items-center",
+            "px-3 py-1.5 text-xs font-mono tracking-wider",
             "transition-base",
             activeView === item.id
               ? "bg-accent text-background"
