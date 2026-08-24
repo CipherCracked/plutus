@@ -102,7 +102,7 @@ function TableHeaderCell({
       onClick={() => onSort(col.key as SortKey)}
       className={clsx(
         "flex h-full flex-shrink-0 items-center px-3 text-xs font-mono uppercase tracking-wider",
-        "text-text-secondary hover:text-foreground transition-base",
+        "text-text-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-base",
         sortKey === col.key && "text-accent",
         {
           "justify-end": col.align === "right",
@@ -174,9 +174,17 @@ export function TransactionTable() {
   const renderRow = (txn: Transaction, offsetY: number) => (
     <div
       key={txn.id}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          setSelectedTransaction(txn)
+        }
+      }}
       className={clsx(
         "absolute top-0 left-0 flex items-center border-b border-border",
-        "hover:bg-surface-hover cursor-pointer transition-base",
+        "hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer transition-base",
         selectedTransaction?.id === txn.id && "bg-surface-hover",
       )}
       style={{
