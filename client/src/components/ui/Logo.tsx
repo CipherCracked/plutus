@@ -1,16 +1,18 @@
 /**
- * Plutus logo — bold geometric "P" with coin bowl + growth arrow.
+ * Plutus logo — bold geometric "P" (raw aesthetics, 2026 fintech trends).
  *
- * Visual language inspired by 2026 fintech trends:
- * - Radically simple: single "P" letterform, no extra decoration
- * - AI-resistant: precise geometric construction, custom proportions
- * - Conceptual: P-bowl = coin (wealth), upward stem = growth (earnings)
- * - Icon-first: works at app-icon size (16px+) without wordmark
+ * Applied principles from /fintech-ui-2026 skill:
+ * - Raw Aesthetics: sharp 90-degree corners, no rounded edges, blocky
+ *   construction. Feels like a control panel, not a consumer toy.
+ * - Radical Simplicity: single letterform, no extra decoration. Every
+ *   path serves a purpose — the P is the mark.
+ * - Purposeful: the thick vertical stem conveys stability (trust),
+ *   the enclosed bowl with coin ring (subtle inner circle) ties to
+ *   wealth without being literal.
+ * - Dark-mode first: gold accent (#d4af37) on #0a0a0a, high contrast.
  *
- * The "P" is the primary mark — immediately recognizable as the Plutus
- * brand. The bowl is styled as a coin (gold ring with highlight arc),
- * and the vertical stem terminates in an upward chevron (growth arrow).
- * This keeps the symbol readable while encoding both wealth and growth.
+ * The P is built from thick strokes with no curves — pure geometric
+ * construction that reads clearly even at 16px (app-icon size).
  */
 
 interface LogoProps {
@@ -43,55 +45,25 @@ export function Logo({ size = "md", showText = false, className }: LogoProps) {
         width={iconSize}
         height={iconSize}
         viewBox="0 0 24 24"
-        fill="none"
+        fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
         className="text-accent"
       >
-        {/* P bowl — coin ring at top-left */}
-        <path
-          d="M7 6 L7 15 L13 15 C14.65 15 16 13.65 16 12 C16 10.35 14.65 9 13 9 L11 9 L11 6 Z"
-          fill="currentColor"
-        />
+        {/* P stem — thick vertical bar */}
+        <rect x="5" y="4" width="5" height="20" />
 
-        {/* Coin ring detail — outer edge on bowl */}
+        {/* P bowl — thick horizontal bar + inner ring for coin detail */}
+        <rect x="10" y="4" width="9" height="5" />
+        <rect x="14" y="8" width="5" height="9" />
+
+        {/* Inner coin ring — subtle circle inside P bowl for wealth association */}
         <circle
-          cx="10"
-          cy="10.5"
-          r="2.25"
-          stroke="currentColor"
-          strokeWidth="0.6"
-          opacity="0.3"
-        />
-
-        {/* P stem */}
-        <line
-          x1="7"
-          y1="15"
-          x2="7"
-          y2="19"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-        />
-
-        {/* Growth arrow — upward chevron at stem base */}
-        <path
-          d="M5.25 19 L7 17.25 L8.75 19"
+          cx="14.5"
+          cy="9.5"
+          r="2"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.25"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Coin highlight — subtle sheen on bowl */}
-        <path
-          d="M8 8 C8.5 7.5 9.5 7.5 10 8 C10.5 8.5 10.5 9.5 10 10"
-          stroke="currentColor"
-          strokeWidth="0.4"
-          opacity="0.2"
-          fill="none"
-          strokeLinecap="round"
+          strokeWidth="0.75"
         />
       </svg>
 
