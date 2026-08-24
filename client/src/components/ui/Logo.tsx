@@ -2,8 +2,8 @@
  * Plutus logo — geometric P + ascending bars + growth swoosh + sparkle.
  *
  * Full mark combines:
- * - Geometric "P" in navy gradient (trust/stability)
- * - Three ascending bars in teal→green gradient (data/earnings)
+ * - Geometric "P" in gold gradient (trust/stability)
+ * - Three ascending bars in white→gold gradient (data/earnings)
  * - Orbital swoosh (motion/growth trajectory)
  * - Sparkle accent (insights)
  * - Wordmark "PLUTUS" (for full/desktop displays)
@@ -11,8 +11,8 @@
  * Per /fintech-ui-2026 skill: the mark is a single recognizable unit
  * at icon size; the full logo is for splash/landing pages.
  *
- * Theme: dark-first (#0a0a0a background).  The navy P is visible as a
- * subtle shape on the dark surface; the teal/green accent pops.
+ * Theme: dark-first (#0a0a0a background).  The gold P glows against the
+ * dark surface; the white→gold gradient bars convey growth.
  */
 
 interface LogoProps {
@@ -58,7 +58,7 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
           </desc>
 
           <defs>
-            {/* Deep navy for the P and wordmark */}
+            {/* Gold gradient for the P and wordmark */}
             <linearGradient
               id="navy"
               x1="120"
@@ -67,11 +67,11 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
               y2="600"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0" stopColor="#183B72" />
-              <stop offset="1" stopColor="#071A40" />
+              <stop offset="0" stopColor="#d4af37" />
+              <stop offset="1" stopColor="#b8860b" />
             </linearGradient>
 
-            {/* Teal / green growth accent */}
+            {/* Gold accent for growth / swoosh / sparkle */}
             <linearGradient
               id="growth"
               x1="80"
@@ -80,9 +80,9 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
               y2="170"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0" stopColor="#12B8D1" />
-              <stop offset="0.5" stopColor="#20C7B7" />
-              <stop offset="1" stopColor="#79E1A1" />
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset="0.5" stopColor="#d4af37" />
+              <stop offset="1" stopColor="#b8860b" />
             </linearGradient>
           </defs>
 
@@ -221,8 +221,8 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
             y2="600"
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset="0" stopColor="#183B72" />
-            <stop offset="1" stopColor="#071A40" />
+            <stop offset="0" stopColor="#d4af37" />
+            <stop offset="1" stopColor="#b8860b" />
           </linearGradient>
 
           <linearGradient
@@ -233,9 +233,9 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
             y2="170"
             gradientUnits="userSpaceOnUse"
           >
-            <stop offset="0" stopColor="#12B8D1" />
-            <stop offset="0.5" stopColor="#20C7B7" />
-            <stop offset="1" stopColor="#79E1A1" />
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="0.5" stopColor="#d4af37" />
+            <stop offset="1" stopColor="#b8860b" />
           </linearGradient>
         </defs>
 
