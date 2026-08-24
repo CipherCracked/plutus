@@ -67,8 +67,8 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
               y2="600"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0" stop-color="#183B72" />
-              <stop offset="1" stop-color="#071A40" />
+              <stop offset="0" stopColor="#183B72" />
+              <stop offset="1" stopColor="#071A40" />
             </linearGradient>
 
             {/* Teal / green growth accent */}
@@ -80,9 +80,9 @@ export function Logo({ variant = "icon", size = "md", className }: LogoProps) {
               y2="170"
               gradientUnits="userSpaceOnUse"
             >
-              <stop offset="0" stop-color="#12B8D1" />
-              <stop offset="0.5" stop-color="#20C7B7" />
-              <stop offset="1" stop-color="#79E1A1" />
+              <stop offset="0" stopColor="#12B8D1" />
+              <stop offset="0.5" stopColor="#20C7B7" />
+              <stop offset="1" stopColor="#79E1A1" />
             </linearGradient>
           </defs>
 
