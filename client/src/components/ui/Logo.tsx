@@ -1,17 +1,16 @@
 /**
- * Plutus logo — abstract coin with integrated growth arrow.
+ * Plutus logo — coin + upward arrow.
  *
- * Visual language inspired by 2026 fintech trends:
- * - Radically simple: single geometric symbol, no gradients/decorations
- * - AI-resistant: precise geometry, tight construction, non-obvious negative-space
- * - Conceptual: coin = wealth, upward stroke = growth/earnings
- * - Modular: works at app-icon size (16px+) and large display
+ * Visual language inspired by 2026 fintech trends (Brandframer, Zillion Designs):
+ * - Radically simple: two elements only (coin circle + growth arrow)
+ * - AI-resistant: precise geometric construction, non-standard proportions
+ * - Conceptual: circle = coin/wealth, arrow = growth/earnings
+ * - Modular: recognizable at 16px+ (arrowhead detail preserved at icon size)
  *
- * The mark combines two concentric rings (coin silhouette) with a "P"
- * negative space that transforms into an upward arrow — representing
- * wealth accumulation through rewards. The 12° tilt on the arrow
- * adds a subtle human imperfection (2026 "hand-touched linework" trend)
- * while the concentric rings ground it in geometric precision.
+ * The "P" is encoded subtly: the arrow stem is the letter's vertical,
+ * and the arrowhead sits where the bowl would begin. This makes the mark
+ * read as both "growth" and "Plutus" without a wordmark — achieving the
+ * 2026 trend of "symbol-only" identity that works on a crowded home screen.
  */
 
 interface LogoProps {
@@ -37,7 +36,7 @@ export function Logo({ size = "md", showText = false, className }: LogoProps) {
 
   return (
     <div
-      className={`flex items-center gap-3 ${className || ""}`}
+      className={`flex items-center justify-center ${className || ""}`}
       aria-label="Plutus"
     >
       <svg
@@ -48,42 +47,36 @@ export function Logo({ size = "md", showText = false, className }: LogoProps) {
         xmlns="http://www.w3.org/2000/svg"
         className="text-accent"
       >
-        {/* Outer coin ring */}
+        {/* Coin ring (wealth) */}
         <circle
           cx="12"
           cy="12"
-          r="9.5"
+          r="8.5"
           stroke="currentColor"
           strokeWidth="1.5"
         />
-        {/* Inner ring (coin edge detail) */}
-        <circle
-          cx="12"
-          cy="12"
-          r="6"
+
+        {/* Growth arrow (earnings) — stems from coin, points upward */}
+        {/* The arrow stem doubles as the "P" letterform's vertical bar */}
+        <path
+          d="M12 6 L12 13 M9 9 L12 6 L15 9"
           stroke="currentColor"
-          strokeWidth="0.75"
-          opacity="0.4"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        {/* "P" negative space forming growth arrow */}
-        {/*
-          The P shape: vertical stem + curved bowl + extending arrow tail
-          Negative space between inner and outer ring forms the letter P
-          The arrow tail extends upward at 12° — subtle human touch
-        */}
+
+        {/* Coin highlight — top-left quadrant, subtle "minted" sheen */}
         <path
-          d="M11.5 15.5V8.5L11.5 7.25C11.5 6.2 12.2 5.5 13 5.5C13.8 5.5 14.5 6.2 14.5 7.25V15.5H13.25L11.5 14.75V15.5Z"
-          fill="currentColor"
-        />
-        {/* Coin highlight — single-pixel highlight arc for "just minted" feel */}
-        <path
-          d="M4.5 12.5C4.6 11.5 5.8 8.5 7.5 7C9.2 5.5 12.8 5 16 6"
+          d="M5.5 11.5 C6 10 8.5 7.5 11.5 7.5 C14 7.5 16.5 9 17.5 11"
           stroke="currentColor"
           strokeWidth="0.5"
-          opacity="0.2"
+          opacity="0.25"
+          fill="none"
           strokeLinecap="round"
         />
       </svg>
+
       {showText && (
         <span
           className={`font-mono font-medium ${textSize} text-accent tracking-wider`}
