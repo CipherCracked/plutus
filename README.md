@@ -86,7 +86,12 @@ Schema: see `server/schema.sql` — 4 tables (`users`, `transactions`, `rewards`
 
 ## Live URLs
 
-Not deployed — running locally only (24h window went into depth over deployment). No demo video yet either; this README + the commit history are the walkthrough.
+| | URL |
+|---|---|
+| Frontend (Next.js on Vercel) | **https://plutus-drab.vercel.app** |
+| API (FastAPI on Render free tier) | https://plutus-qpi2.onrender.com |
+
+Note: the Render free tier sleeps after inactivity — the first request after a idle period can take ~30–60 s while the service wakes up. No demo video; this README + the commit history are the walkthrough.
 
 ## Done
 
@@ -105,10 +110,11 @@ Not deployed — running locally only (24h window went into depth over deploymen
 - ✅ Responsive down to 360px: bottom-sheet filter overlay, frozen first table column, 44px touch targets
 - ✅ Keyboard support: arrow keys / Home / End walk rows, Enter opens detail, Escape closes overlays; ARIA live region announces result counts
 - ✅ TypeScript and ESLint pass with 0 errors
+- ✅ Deployed: frontend on Vercel, API on Render free tier, PostgreSQL on Supabase
 
 ## Not Done
 
-- ❌ Deployment (Vercel + Render/Fly + hosted Postgres) and demo video
+- ❌ Demo video (deployment is done — see Live URLs above; the video isn't)
 - ❌ Automated tests (the brief lists them as genuinely optional; none written)
 - ❌ Server-side pagination / filtering / sorting — deliberately declined, see `DECISIONS.md` DT3
 - ❌ Focus trap + Escape handling on the **desktop** slide-over panel (the mobile overlay has both)
@@ -119,7 +125,7 @@ Not deployed — running locally only (24h window went into depth over deploymen
 - `npm run build` fails on the development machine used to build this (Turbopack PostCSS worker exits with `0xc0000142` on Windows). Verified pre-existing on a clean checkout — `next dev` runs the app fine.
 - The full dataset ships to the browser once (~2 MB JSON). Fine at 10k rows; past ~50k you'd want the server-side route we consciously skipped.
 - Redemption atomicity comes from running check-deduct-log in one database transaction. It does not take a row lock (`SELECT … FOR UPDATE`) — correct for a single-user demo, not for concurrent multi-user writes.
-- CORS is a strict origin allowlist, not `*`: the backend serves only origins in its `ALLOWED_ORIGINS` env var (comma-separated), falling back to the local dev server when unset. A deployed backend **must** set it to the frontend's origin (e.g. on Render: `ALLOWED_ORIGINS=https://<frontend>.vercel.app`) or browsers will block API calls.
+- CORS is a strict origin allowlist, not `*`: the backend serves only the deployed frontend (`https://plutus-drab.vercel.app`) plus local dev origins. Overridable via its `ALLOWED_ORIGINS` env var (comma-separated) — set it if the frontend ever moves to a new origin.
 - One pre-existing ESLint warning from `@tanstack/react-virtual` (React Compiler compatibility note); harmless.
 
 ## Project Structure
