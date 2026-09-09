@@ -20,9 +20,12 @@ import os
 from contextlib import contextmanager
 
 import psycopg2
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from dotenv import load_dotenv
+
+from jose import JWTError, jwt
 
 from models import (
     AnalyticsResponse,
@@ -82,6 +85,51 @@ app.add_middleware(
 )
 
 
+security = HTTPBearer(auto_error=False)
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+) -> int:
+    """
+    Return the user profile id from a valid Supabase JWT.
+    If no token is provided, fall back to the demo user (`plutus_user`).
+    """
+    user_profile_id = None
+    if credentials:
+        try:
+            payload = jwt.decode(
+                credentials.credentials,
+                os.getenv("SUPABASE_JWT_SECRET", "supabase-jwt-secret"),
+                algorithms=["HS256"],
+            )
+            user_sub = payload.get("sub")
+            if user_sub:
+                with get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "SELECT id FROM user_profiles WHERE user_id = %s",
+                            (int(user_sub),),
+                        )
+                        row = cur.fetchone()
+                        if row:
+                            user_profile_id = row[0]
+        except JWTError:
+            pass  # Fall back to demo user if token is invalid
+
+    # Fallback to demo user profile (anonymous access permitted per design)
+    if user_profile_id is None:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT up.id FROM user_profiles up JOIN users u ON up.user_id = u.id WHERE u.username = 'plutus_user'"
+                )
+                row = cur.fetchone()
+                user_profile_id = row[0] if row else 1
+
+    return user_profile_id
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -120,33 +168,38 @@ def get_transactions():
 
 
 @app.get("/api/balance", response_model=CoinBalance)
-def get_balance():
-    """Return the default user's coin balance and lifetime stats."""
+def get_balance(user_profile_id: int = Depends(get_current_user)):
+    """Return the user's coin balance and lifetime stats (scoped by profile)."""
     with get_db() as conn:
         with conn.cursor() as cur:
-            # Current balance + username
             cur.execute(
-                "SELECT coin_balance, username FROM users WHERE username = 'plutus_user'"
+                "SELECT coin_balance FROM user_profiles WHERE id = %s",
+                (user_profile_id,),
             )
             row = cur.fetchone()
             if not row:
-                raise HTTPException(500, "Default user not found — run seed.py first")
-            balance, username = row
+                raise HTTPException(500, "User profile not found — run seed.py first")
+            balance = row[0]
 
-            # Total earned (sum of coins_earned across all transactions)
+            # Get username from linked users table for display
             cur.execute(
-                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions"
+                "SELECT u.username FROM users u JOIN user_profiles up ON u.id = up.user_id WHERE up.id = %s",
+                (user_profile_id,),
+            )
+            username_row = cur.fetchone()
+            username = username_row[0] if username_row else "plutus_user"
+
+            # Total earned (user-scoped transactions)
+            cur.execute(
+                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_id = (SELECT user_id FROM user_profiles WHERE id = %s)",
+                (user_profile_id,),
             )
             total_earned = cur.fetchone()[0]
 
-            # Total redeemed (sum of coins_spent across all redemptions)
+            # Total redeemed (user-scoped redemptions via user_profiles FK)
             cur.execute(
-                """
-                SELECT COALESCE(SUM(r.coins_spent), 0)
-                FROM redemptions r
-                JOIN users u ON r.user_id = u.id
-                WHERE u.username = 'plutus_user'
-                """
+                "SELECT COALESCE(SUM(coins_spent), 0) FROM redemptions WHERE user_profile_id = %s",
+                (user_profile_id,),
             )
             total_redeemed = cur.fetchone()[0]
 
@@ -181,29 +234,28 @@ def get_rewards():
 
 
 @app.post("/api/redeem", response_model=RedeemResponse)
-def redeem_reward(request: RedeemRequest):
+def redeem_reward(request: RedeemRequest, user_profile_id: int = Depends(get_current_user)):
     """
-    Redeem a reward atomically.
+    Redeem a reward atomically (user-scoped via user_profile_id).
 
     Flow (all in one transaction):
-        1. Look up reward and user.
+        1. Look up user profile and reward.
         2. Check balance >= coin_cost.
-        3. Deduct coins, log redemption.
+        3. Deduct coins from user_profiles, log redemption via user_profile_id.
 
-    Returns 402 if insufficient balance, 400/404 for invalid request.
+    Returns 402 if insufficient balance, 404 for invalid request.
     """
     with get_db() as conn:
         with conn.cursor() as cur:
-            # Upsert the user (ensure exists)
             cur.execute(
-                "SELECT id, coin_balance FROM users WHERE username = 'plutus_user'"
+                "SELECT id, coin_balance FROM user_profiles WHERE id = %s",
+                (user_profile_id,),
             )
-            user_row = cur.fetchone()
-            if not user_row:
-                raise HTTPException(500, "Default user not found")
-            user_id, balance = user_row
+            profile_row = cur.fetchone()
+            if not profile_row:
+                raise HTTPException(500, "User profile not found — run seed.py first")
+            profile_id, balance = profile_row
 
-            # Look up reward
             cur.execute(
                 "SELECT id, name, coin_cost FROM rewards WHERE id = %s",
                 (request.reward_id,),
@@ -213,25 +265,21 @@ def redeem_reward(request: RedeemRequest):
                 raise HTTPException(404, "Reward not found")
             reward_id, reward_name, coin_cost = reward_row
 
-            # Check balance (402 = Payment Required)
             if balance < coin_cost:
                 raise HTTPException(
                     402,
                     f"Insufficient coins: {balance} < {coin_cost} required for '{reward_name}'",
                 )
 
-            # Deduct and log — atomic within this transaction
             new_balance = balance - coin_cost
             cur.execute(
-                "UPDATE users SET coin_balance = %s WHERE id = %s",
-                (new_balance, user_id),
+                "UPDATE user_profiles SET coin_balance = %s WHERE id = %s",
+                (new_balance, profile_id),
             )
             cur.execute(
-                "INSERT INTO redemptions (user_id, reward_id, coins_spent) VALUES (%s, %s, %s)",
-                (user_id, reward_id, coin_cost),
+                "INSERT INTO redemptions (user_profile_id, reward_id, coins_spent) VALUES (%s, %s, %s)",
+                (profile_id, reward_id, coin_cost),
             )
-    # Commit happens automatically in get_db() context manager on successful exit
-
     return RedeemResponse(
         success=True,
         message=f"Redeemed '{reward_name}' for {coin_cost} coins",

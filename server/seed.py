@@ -193,7 +193,7 @@ def seed_transactions(conn):
     # Create fresh schema
     create_schema(conn)
 
-    # Insert default user
+    # Insert default user and profile
     with conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -202,6 +202,12 @@ def seed_transactions(conn):
             )
             user_row = cur.fetchone()
             user_id = user_row[0]
+            cur.execute(
+                "INSERT INTO user_profiles (user_id, coin_balance) VALUES (%s, %s) RETURNING id",
+                (user_id, 0),
+            )
+            profile_row = cur.fetchone()
+            user_profile_id = profile_row[0]
 
     # Normalize all transactions
     seen_ids = set()
@@ -284,6 +290,10 @@ def seed_transactions(conn):
                 (user_id,),
             )
             balance = cur.fetchone()[0]
+            cur.execute(
+                "UPDATE user_profiles SET coin_balance = %s WHERE id = %s",
+                (balance, user_profile_id),
+            )
             cur.execute(
                 "UPDATE users SET coin_balance = %s WHERE id = %s",
                 (balance, user_id),

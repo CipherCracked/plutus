@@ -9,6 +9,14 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
+function authHeaders(): HeadersInit {
+  const token =
+    (typeof window !== "undefined" ? localStorage.getItem("plutus_auth_token") : null) ||
+    (typeof window !== "undefined" ? sessionStorage.getItem("plutus_auth_token") : null) ||
+    undefined
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export interface Transaction {
   id: string
   timestamp: string
@@ -74,7 +82,9 @@ export async function fetchTransactions(): Promise<Transaction[]> {
 }
 
 export async function fetchBalance(): Promise<CoinBalance> {
-  const res = await fetch(`${API_BASE}/api/balance`)
+  const res = await fetch(`${API_BASE}/api/balance`, {
+    headers: authHeaders(),
+  })
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
   return res.json()
 }
@@ -88,7 +98,10 @@ export async function fetchRewards(): Promise<Reward[]> {
 export async function redeemReward(rewardId: number): Promise<RedeemResponse> {
   const res = await fetch(`${API_BASE}/api/redeem`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
     body: JSON.stringify({ reward_id: rewardId }),
   })
   if (!res.ok) {

@@ -35,6 +35,17 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 -- ============================================================================
+-- USER PROFILES (per-user isolation for multi-user auth)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    coin_balance INTEGER NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
+
+-- ============================================================================
 -- REWARDS CATALOGUE
 -- 4-6 self-defined rewards that users redeem coins for.
 -- ============================================================================
@@ -53,11 +64,11 @@ CREATE TABLE IF NOT EXISTS rewards (
 -- Audit trail of all redemptions for the default user.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS redemptions (
-    id          SERIAL PRIMARY KEY,
-    user_id     INTEGER NOT NULL REFERENCES users(id),
-    reward_id   INTEGER NOT NULL REFERENCES rewards(id),
-    coins_spent INTEGER NOT NULL,
-    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+    id                 SERIAL PRIMARY KEY,
+    user_profile_id    INTEGER NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+    reward_id          INTEGER NOT NULL REFERENCES rewards(id),
+    coins_spent        INTEGER NOT NULL,
+    created_at         TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================================
@@ -82,8 +93,8 @@ CREATE INDEX IF NOT EXISTS idx_transactions_merchant_gin
 -- Filtering: user-scoped queries (if multi-user in future)
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 
--- Redemptions: user-scoped
-CREATE INDEX IF NOT EXISTS idx_redemptions_user_id ON redemptions(user_id);
+-- Redemptions: user-scoped via user_profiles
+CREATE INDEX IF NOT EXISTS idx_redemptions_user_profile_id ON redemptions(user_profile_id);
 
 -- Coins: coins_earned for aggregate queries
 CREATE INDEX IF NOT EXISTS idx_transactions_coins_earned ON transactions(coins_earned);
