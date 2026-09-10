@@ -145,12 +145,9 @@ async def get_current_user(
 # ---------------------------------------------------------------------------
 
 @app.get("/api/transactions", response_model=list[Transaction])
-def get_transactions():
+def get_transactions(user_profile_id: int = Depends(get_current_user)):
     """
-    Return all transactions.
-
-    The frontend loads this once and caches 10k rows in Zustand for
-    client-side filtering, search, and virtualization.
+    Return user-scoped transactions (requires auth via Supabase JWT).
     """
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -166,8 +163,9 @@ def get_transactions():
                     payment_method,
                     coins_earned
                 FROM transactions
+                WHERE user_id = (SELECT user_id FROM user_profiles WHERE id = %s)
                 ORDER BY timestamp DESC
-            """)
+            """, (user_profile_id,))
             rows = cur.fetchall()
 
     columns = [
