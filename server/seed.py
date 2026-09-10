@@ -190,6 +190,7 @@ def seed_transactions(conn):
             cur.execute("DROP TABLE IF EXISTS redemptions CASCADE")
             cur.execute("DROP TABLE IF EXISTS rewards CASCADE")
             cur.execute("DROP TABLE IF EXISTS users CASCADE")
+            cur.execute("DROP TABLE IF EXISTS user_profiles CASCADE")
 
     # Create fresh schema
     create_schema(conn)
