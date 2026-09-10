@@ -13,6 +13,16 @@ import { useRewardsStore } from "@/stores/rewards-store"
 import { fetchTransactions, fetchBalance, fetchRewards } from "@/lib/api"
 
 export default function HomePage() {
+  // Redirect to login when no auth token present (user-specific data protected)
+  if (typeof window !== "undefined") {
+    const token =
+      localStorage.getItem("plutus_auth_token") ||
+      sessionStorage.getItem("plutus_auth_token")
+    if (!token) {
+      window.location.href = "/login"
+      return null
+    }
+  }
   const { activeView } = useUIStore()
   const { setTransactions, setLoading, setError } = useTransactionStore()
   const { setBalance, setRewards } = useRewardsStore()
