@@ -35,6 +35,8 @@ from models import (
     MonthlyTrend,
     RedeemRequest,
     RedeemResponse,
+    RegisterResponse,
+    RegisterRequest,
     Reward,
     Transaction,
 )
@@ -321,6 +323,48 @@ def login(request: LoginRequest):
         return LoginResponse(token=token, user_profile_id=profile_id)
     except Exception as exc:
         raise HTTPException(401, f"Login failed: {exc}")
+
+
+@app.post("/api/register", response_model=RegisterResponse)
+def register(request: RegisterRequest):
+    """Register via existing Supabase Auth. Creates user + profile."""
+    supabase_client = get_supabase_client()
+    if not supabase_client:
+        raise HTTPException(501, "Supabase Auth not configured")
+    try:
+        auth = supabase_client.auth.sign_up({
+            "email": request.email,
+            "password": request.password,
+        })
+        token = auth.session.access_token if auth.session else ""
+        user_sub = auth.user.id if auth.user else None
+        profile_id = None
+        if user_sub:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT id FROM users WHERE username = %s",
+                        (request.email.split("@")[0],),
+                    )
+                    existing = cur.fetchone()
+                    if existing:
+                        user_id = existing[0]
+                    else:
+                        cur.execute(
+                            "INSERT INTO users (username, coin_balance) VALUES (%s, 0) RETURNING id",
+                            (request.email.split("@")[0],),
+                        )
+                        user_id = cur.fetchone()[0]
+                    cur.execute(
+                        "INSERT INTO user_profiles (user_id, coin_balance) VALUES (%s, 0) RETURNING id",
+                        (user_id,),
+                    )
+                    profile_id = cur.fetchone()[0]
+        if profile_id is None:
+            raise HTTPException(500, "Failed to create user profile")
+        return RegisterResponse(token=token, user_profile_id=profile_id)
+    except Exception as exc:
+        raise HTTPException(400, f"Registration failed: {exc}")
 
 
 @app.get("/api/analytics", response_model=AnalyticsResponse)

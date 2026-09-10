@@ -6,7 +6,10 @@ The multi-user auth middleware (`main.py` `get_current_user`) validates Supabase
 ## Background and Context
 - `docs/plutus-expansion/itds/auth-middleware.md` corrected: uses `supabase` client (`supabase_client.auth.get_user`) instead of custom `python-jose` middleware.
 - `client/src/lib/api.ts` reads `plutus_auth_token` from `localStorage`/`sessionStorage` but nothing writes it.
-- `docs/plutus-expansion/itds/auth-middleware-correction.md` records the design mistake.
+- Protected all user-specific endpoints: `/api/transactions`, `/api/balance`, `/api/redeem` (all require `Depends(get_current_user)`).
+- Homepage (`/`) redirects to `/login` when `plutus_auth_token` absent (`page.tsx`).
+- Auth middleware corrected: uses `supabase` (`python-jose` removed); no useless `plutus_user` fallback.
+- `docs/plutus-expansion/itds/auth-middleware-correction.md` records design mistake and fix.
 - User approved: "both — endpoint and UI".
 
 ## Goals
@@ -15,9 +18,11 @@ The multi-user auth middleware (`main.py` `get_current_user`) validates Supabase
 - Preserve the demo user (`plutus_user`) as anonymous fallback (optional, but user removed useless fallback — so login is required for multi-user isolation).
 
 ## Non-Goals
-- Full registration/sign-up flow (out of scope for this bounded fix).
-- Password reset, email verification, or production-grade security hardening.
-- Replacing the existing `user_profiles` isolation or endpoint filtering.
+- Password reset, email verification (post-registration), or production-grade security hardening beyond basic JWT.
+- Changing existing `user_profiles` isolation or endpoint filtering design.
+
+## Registration — Required Companion to Login
+Without registration, login is useless: no user can create an account. The bounded scope must include a minimal `/api/register` endpoint (Supabase `sign_up`) and a matching UI. This was omitted initially — corrected here.
 
 ## Constraints
 - Must use existing `supabase` dependency (`requirements.txt`).

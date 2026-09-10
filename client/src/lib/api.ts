@@ -152,6 +152,43 @@ export async function login(req: LoginRequest): Promise<LoginResponse> {
   return data as LoginResponse
 }
 
+export interface RegisterRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterResponse {
+  token: string
+  user_profile_id: number
+}
+
+export async function register(req: RegisterRequest): Promise<RegisterResponse> {
+  const res = await fetch(`${API_BASE}/api/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(req),
+  })
+  if (!res.ok) {
+    let detail = res.statusText
+    try {
+      const err = await res.json()
+      detail = err.detail || detail
+    } catch {}
+    throw new Error(`HTTP ${res.status}: ${detail}`)
+  }
+  const data = await res.json()
+  const token = data.token
+  if (token) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("plutus_auth_token", token)
+    }
+  }
+  return data as RegisterResponse
+}
+
 export async function fetchAnalytics(): Promise<AnalyticsData> {
   const res = await fetch(`${API_BASE}/api/analytics`)
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)

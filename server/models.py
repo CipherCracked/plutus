@@ -46,8 +46,14 @@ class LoginResponse(BaseModel):
     user_profile_id: int
 
 
-class RedeemRequest(BaseModel):
-    reward_id: int
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+
+
+class RegisterResponse(BaseModel):
+    token: str
+    user_profile_id: int
 
 
 class RedeemResponse(BaseModel):
