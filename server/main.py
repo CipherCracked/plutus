@@ -1,12 +1,12 @@
-"""
-Plutus — FastAPI Backend
+﻿"""
+Plutus â€” FastAPI Backend
 
 Endpoints:
-    GET  /api/transactions  — all transactions (for client-side virtualization)
-    GET  /api/balance       — user's coin balance + stats
-    GET  /api/rewards       — rewards catalogue
-    POST /api/redeem        — redeem a reward (atomic)
-    GET  /api/analytics     — pre-aggregated category + monthly trend
+    GET  /api/transactions  â€” all transactions (for client-side virtualization)
+    GET  /api/balance       â€” user's coin balance + stats
+    GET  /api/rewards       â€” rewards catalogue
+    POST /api/redeem        â€” redeem a reward (atomic)
+    GET  /api/analytics     â€” pre-aggregated category + monthly trend
 
 Run:
     uvicorn main:app --host 0.0.0.0 --port 8000
@@ -70,7 +70,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS — open to all origins: public demo API, no credentials involved,
+# CORS â€” open to all origins: public demo API, no credentials involved,
 # and Vercel mints a new origin per deployment. To restrict, set
 # ALLOWED_ORIGINS (comma-separated) in the environment.
 allowed_origins = [
@@ -127,7 +127,7 @@ async def get_current_user(
                 with get_db() as conn:
                     with conn.cursor() as cur:
                         cur.execute(
-                            "SELECT id FROM user_profiles WHERE user_id = %s",
+                            "SELECT id FROM user_profiles WHERE auth_sub = %s",
                             (user_sub,),
                         )
                         row = cur.fetchone()
@@ -137,7 +137,7 @@ async def get_current_user(
             pass  # Fall back to demo user
 
     if user_profile_id is None:
-        raise HTTPException(status_code=401, detail="Authentication required — no valid Supabase session or token provided.")
+        raise HTTPException(status_code=401, detail="Authentication required â€” no valid Supabase session or token provided.")
 
     return user_profile_id
 
@@ -165,7 +165,7 @@ def get_transactions(user_profile_id: int = Depends(get_current_user)):
                     payment_method,
                     coins_earned
                 FROM transactions
-                WHERE user_id = (SELECT user_id FROM user_profiles WHERE id = %s)
+                WHERE user_profile_id = %s
                 ORDER BY timestamp DESC
             """, (user_profile_id,))
             rows = cur.fetchall()
@@ -188,12 +188,12 @@ def get_balance(user_profile_id: int = Depends(get_current_user)):
             )
             row = cur.fetchone()
             if not row:
-                raise HTTPException(500, "User profile not found — run seed.py first")
+                raise HTTPException(500, "User profile not found â€” run seed.py first")
             balance = row[0]
 
-            # Get username from linked users table for display
+            # Get username from profile for display
             cur.execute(
-                "SELECT u.username FROM users u JOIN user_profiles up ON u.id = up.user_id WHERE up.id = %s",
+                "SELECT username FROM user_profiles WHERE id = %s",
                 (user_profile_id,),
             )
             username_row = cur.fetchone()
@@ -201,7 +201,7 @@ def get_balance(user_profile_id: int = Depends(get_current_user)):
 
             # Total earned (user-scoped transactions)
             cur.execute(
-                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_id = (SELECT user_id FROM user_profiles WHERE id = %s)",
+                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_profile_id = %s",
                 (user_profile_id,),
             )
             total_earned = cur.fetchone()[0]
@@ -222,7 +222,7 @@ def get_balance(user_profile_id: int = Depends(get_current_user)):
 
 
 @app.get("/api/rewards", response_model=list[Reward])
-def get_rewards():
+def get_rewards(user_profile_id: int = Depends(get_current_user)):
     """Return the full rewards catalogue."""
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -263,7 +263,7 @@ def redeem_reward(request: RedeemRequest, user_profile_id: int = Depends(get_cur
             )
             profile_row = cur.fetchone()
             if not profile_row:
-                raise HTTPException(500, "User profile not found — run seed.py first")
+                raise HTTPException(500, "User profile not found â€” run seed.py first")
             profile_id, balance = profile_row
 
             cur.execute(
@@ -313,7 +313,7 @@ def login(request: LoginRequest):
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT id FROM user_profiles WHERE user_id = %s",
+                    "SELECT id FROM user_profiles WHERE auth_sub = %s",
                     (str(user_sub),),
                 )
                 row = cur.fetchone()
@@ -343,23 +343,18 @@ def register(request: RegisterRequest):
             with get_db() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
-                        "SELECT id FROM users WHERE username = %s",
+                        "SELECT id FROM user_profiles WHERE username = %s",
                         (request.email.split("@")[0],),
                     )
                     existing = cur.fetchone()
                     if existing:
-                        user_id = existing[0]
+                        profile_id = existing[0]
                     else:
                         cur.execute(
-                            "INSERT INTO users (username, coin_balance) VALUES (%s, 0) RETURNING id",
-                            (request.email.split("@")[0],),
+                            "INSERT INTO user_profiles (username, auth_sub, coin_balance) VALUES (%s, %s, 0) RETURNING id",
+                            (request.email.split("@")[0], str(user_sub)),
                         )
-                        user_id = cur.fetchone()[0]
-                    cur.execute(
-                        "INSERT INTO user_profiles (user_id, coin_balance) VALUES (%s, 0) RETURNING id",
-                        (user_id,),
-                    )
-                    profile_id = cur.fetchone()[0]
+                        profile_id = cur.fetchone()[0]
         if profile_id is None:
             raise HTTPException(500, "Failed to create user profile")
         return RegisterResponse(token=token, user_profile_id=profile_id)
@@ -368,7 +363,7 @@ def register(request: RegisterRequest):
 
 
 @app.get("/api/analytics", response_model=AnalyticsResponse)
-def get_analytics():
+def get_analytics(user_profile_id: int = Depends(get_current_user)):
     """
     Return pre-aggregated analytics.
 
@@ -381,9 +376,10 @@ def get_analytics():
             cur.execute("""
                 SELECT  category, SUM(amount), COUNT(*)
                 FROM transactions
+                WHERE user_profile_id = %s
                 GROUP BY category
                 ORDER BY SUM(amount) DESC
-            """)
+            """, (user_profile_id,))
             cat_rows = cur.fetchall()
 
             cur.execute("""
@@ -392,9 +388,10 @@ def get_analytics():
                     SUM(amount),
                     COUNT(*)
                 FROM transactions
+                WHERE user_profile_id = %s
                 GROUP BY month
                 ORDER BY month
-            """)
+            """, (user_profile_id,))
             month_rows = cur.fetchall()
 
     category_breakdown = [
@@ -419,3 +416,5 @@ def get_analytics():
         category_breakdown=category_breakdown,
         monthly_trend=monthly_trend,
     )
+
+

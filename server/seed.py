@@ -189,24 +189,17 @@ def seed_transactions(conn):
             cur.execute("DROP TABLE IF EXISTS transactions CASCADE")
             cur.execute("DROP TABLE IF EXISTS redemptions CASCADE")
             cur.execute("DROP TABLE IF EXISTS rewards CASCADE")
-            cur.execute("DROP TABLE IF EXISTS users CASCADE")
             cur.execute("DROP TABLE IF EXISTS user_profiles CASCADE")
 
     # Create fresh schema
     create_schema(conn)
 
-    # Insert default user and profile
+    # Insert default profile (simplified: identity + isolation in one row)
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (username, coin_balance) VALUES (%s, %s) RETURNING id",
-                (DEFAULT_USER, 0),
-            )
-            user_row = cur.fetchone()
-            user_id = user_row[0]
-            cur.execute(
-                "INSERT INTO user_profiles (user_id, coin_balance) VALUES (%s, %s) RETURNING id",
-                (user_id, 0),
+                "INSERT INTO user_profiles (username, auth_sub, coin_balance) VALUES (%s, %s, %s) RETURNING id",
+                (DEFAULT_USER, DEFAULT_USER, 0),
             )
             profile_row = cur.fetchone()
             user_profile_id = profile_row[0]
@@ -279,14 +272,14 @@ def seed_transactions(conn):
             status,
             txn.get("payment_method") or "Unknown",
             coins,
-            user_id,
+            user_profile_id,
         ))
 
     # Bulk insert
     insert_sql = """
         INSERT INTO transactions (
             id, timestamp, merchant, category, amount,
-            currency, status, payment_method, coins_earned, user_id
+            currency, status, payment_method, coins_earned, user_profile_id
         ) VALUES %s
     """
     with conn:
@@ -304,21 +297,17 @@ def seed_transactions(conn):
     with conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_id = %s",
-                (user_id,),
+                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_profile_id = %s",
+                (user_profile_id,),
             )
             balance = cur.fetchone()[0]
             cur.execute(
                 "UPDATE user_profiles SET coin_balance = %s WHERE id = %s",
                 (balance, user_profile_id),
             )
-            cur.execute(
-                "UPDATE users SET coin_balance = %s WHERE id = %s",
-                (balance, user_id),
-            )
 
     print(f"✓ Default user '{DEFAULT_USER}' created with balance: {balance} coins")
-    return user_id
+    return user_profile_id
 
 
 def seed_rewards(conn):

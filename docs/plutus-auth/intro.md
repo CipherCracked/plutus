@@ -60,3 +60,16 @@ How can Plutus become less isolated and more valuable as a standalone project?
 2. Should multi-user support use Supabase Auth (built-in) or remain simulated (no real login) with a multi-user data model?
 3. Should the `fintech-ui-2026` skill be applied to the existing transactions/rewards pages, or to a new page (e.g., a user dashboard or public analytics view)?
 4. Should new sub-folders (`docs/plutus-expansion/auth/`, `docs/plutus-expansion/public-api/`, `docs/plutus-expansion/design-expansion/`) be created for deeper decomposition, or should all questions stay within this single folder?
+# Plutus Expansion + Auth Door — Collapsed / Updated
+
+## Previous state (collapsed)
+- `docs/auth-door/` removed; content merged into this folder (`auth-door-merged/intro.md`).
+- `docs/plutus-expansion/` retains multi-user auth spec, middleware design, and correction notes.
+
+## KISS / Design simplification applied (post-auth-door + post-expansion)
+- `users` identity table removed. `user_profiles` now holds identity (`username`, `auth_sub`) + isolation (`coin_balance`).
+- Schema (`server/schema.sql`): `user_profiles` has `username`, `auth_sub`; `transactions.user_profile_id` FK; `redemptions.user_profile_id` FK. No `users` table.
+- Middleware (`main.py`): `JWT.sub` (`auth_sub`) → `user_profiles.id` directly. No identity/isolation separation hop.
+- Seed (`seed.py`): inserts single `user_profiles` row (`username`, `auth_sub`, `coin_balance`).
+- Endpoints (`main.py`): `/api/login`, `/api/register`, protected routes filter by `user_profile_id`.
+- Docs (`plutus-expansion/ipds/multi-user-auth.md`, `itds/auth-middleware.md`, `itds/auth-middleware-correction.md`) describe the original separated design; simplification supersedes that design (single profile = identity + isolation).

@@ -56,6 +56,10 @@ class RegisterResponse(BaseModel):
     user_profile_id: int
 
 
+class RedeemRequest(BaseModel):
+    reward_id: int
+
+
 class RedeemResponse(BaseModel):
     success: bool
     message: str
