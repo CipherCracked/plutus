@@ -133,13 +133,7 @@ async def get_current_user(
             pass  # Fall back to demo user
 
     if user_profile_id is None:
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT up.id FROM user_profiles up JOIN users u ON up.user_id = u.id WHERE u.username = 'plutus_user'"
-                )
-                row = cur.fetchone()
-                user_profile_id = row[0] if row else 1
+        raise HTTPException(status_code=401, detail="Authentication required — no valid Supabase session or token provided.")
 
     return user_profile_id
 
