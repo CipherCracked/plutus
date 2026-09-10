@@ -36,6 +36,16 @@ class Reward(BaseModel):
     reward_type: Optional[str] = None
 
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    token: str
+    user_profile_id: int
+
+
 class RedeemRequest(BaseModel):
     reward_id: int
 

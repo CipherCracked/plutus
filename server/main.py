@@ -30,6 +30,8 @@ from models import (
     AnalyticsResponse,
     CategoryBreakdown,
     CoinBalance,
+    LoginRequest,
+    LoginResponse,
     MonthlyTrend,
     RedeemRequest,
     RedeemResponse,
@@ -293,6 +295,34 @@ def redeem_reward(request: RedeemRequest, user_profile_id: int = Depends(get_cur
         message=f"Redeemed '{reward_name}' for {coin_cost} coins",
         new_balance=new_balance,
     )
+
+
+@app.post("/api/login", response_model=LoginResponse)
+def login(request: LoginRequest):
+    """Authenticate via existing Supabase Auth. Returns JWT + profile id."""
+    supabase_client = get_supabase_client()
+    if not supabase_client:
+        raise HTTPException(501, "Supabase Auth not configured")
+    try:
+        auth = supabase_client.auth.sign_in_with_password({
+            "email": request.email,
+            "password": request.password,
+        })
+        token = auth.session.access_token
+        user_sub = auth.user.id
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id FROM user_profiles WHERE user_id = %s",
+                    (str(user_sub),),
+                )
+                row = cur.fetchone()
+                profile_id = row[0] if row else None
+        if profile_id is None:
+            raise HTTPException(404, "User profile not found")
+        return LoginResponse(token=token, user_profile_id=profile_id)
+    except Exception as exc:
+        raise HTTPException(401, f"Login failed: {exc}")
 
 
 @app.get("/api/analytics", response_model=AnalyticsResponse)

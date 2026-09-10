@@ -115,6 +115,43 @@ export async function redeemReward(rewardId: number): Promise<RedeemResponse> {
   return res.json()
 }
 
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface LoginResponse {
+  token: string
+  user_profile_id: number
+}
+
+export async function login(req: LoginRequest): Promise<LoginResponse> {
+  const res = await fetch(`${API_BASE}/api/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(req),
+  })
+  if (!res.ok) {
+    let detail = res.statusText
+    try {
+      const err = await res.json()
+      detail = err.detail || detail
+    } catch {}
+    throw new Error(`HTTP ${res.status}: ${detail}`)
+  }
+  const data = await res.json()
+  const token = data.token
+  if (token) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("plutus_auth_token", token)
+    }
+  }
+  return data as LoginResponse
+}
+
 export async function fetchAnalytics(): Promise<AnalyticsData> {
   const res = await fetch(`${API_BASE}/api/analytics`)
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
