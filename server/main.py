@@ -24,8 +24,7 @@ from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from dotenv import load_dotenv
-
-from jose import JWTError, jwt
+from supabase import create_client, Client
 
 from models import (
     AnalyticsResponse,
@@ -88,36 +87,51 @@ app.add_middleware(
 security = HTTPBearer(auto_error=False)
 
 
+supabase_client: Client = None
+
+
+def get_supabase_client():
+    global supabase_client
+    if supabase_client is None:
+        url = os.getenv("SUPABASE_URL", "")
+        key = os.getenv("SUPABASE_KEY", "")
+        if url and key:
+            supabase_client = create_client(url, key)
+        else:
+            # Fallback for demo: no external auth required
+            supabase_client = None
+    return supabase_client
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(security),
 ) -> int:
     """
-    Return the user profile id from a valid Supabase JWT.
-    If no token is provided, fall back to the demo user (`plutus_user`).
+    Return user profile id from Supabase Auth (existing auth service).
+    Falls back to demo user (`plutus_user`) when no valid session or token.
     """
     user_profile_id = None
-    if credentials:
+    supabase_client = get_supabase_client()
+
+    if supabase_client and credentials:
         try:
-            payload = jwt.decode(
-                credentials.credentials,
-                os.getenv("SUPABASE_JWT_SECRET", "supabase-jwt-secret"),
-                algorithms=["HS256"],
-            )
-            user_sub = payload.get("sub")
-            if user_sub:
+            # Use existing Supabase auth session/token mechanism
+            # Instead of reinventing JWT decode with python-jose
+            user = supabase_client.auth.get_user(credentials.credentials)
+            if user and user.user:
+                user_sub = user.user.id
                 with get_db() as conn:
                     with conn.cursor() as cur:
                         cur.execute(
                             "SELECT id FROM user_profiles WHERE user_id = %s",
-                            (int(user_sub),),
+                            (user_sub,),
                         )
                         row = cur.fetchone()
                         if row:
                             user_profile_id = row[0]
-        except JWTError:
-            pass  # Fall back to demo user if token is invalid
+        except Exception:
+            pass  # Fall back to demo user
 
-    # Fallback to demo user profile (anonymous access permitted per design)
     if user_profile_id is None:
         with get_db() as conn:
             with conn.cursor() as cur:
