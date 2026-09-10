@@ -23,6 +23,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import execute_values
+from supabase import create_client
 
 # Load .env file (gitignored, never committed).
 # Checks project root first, then server/ directory.
@@ -208,6 +209,22 @@ def seed_transactions(conn):
             )
             profile_row = cur.fetchone()
             user_profile_id = profile_row[0]
+
+    # Seed default user into Supabase Auth (so login works out of the box)
+    supabase_url = os.getenv("SUPABASE_URL", "")
+    supabase_key = os.getenv("SUPABASE_KEY", "")
+    if supabase_url and supabase_key:
+        try:
+            sb_client = create_client(supabase_url, supabase_key)
+            sb_client.auth.sign_up({
+                "email": f"{DEFAULT_USER}@plutus.local",
+                "password": "plutus_demo",
+            })
+            print(f"✓ Default user '{DEFAULT_USER}' seeded in Supabase Auth")
+        except Exception as exc:
+            print(f"! Note: Supabase Auth seeding skipped or exists ({exc})")
+    else:
+        print("! Note: SUPABASE_URL / SUPABASE_KEY not set — skipping Supabase Auth seeding")
 
     # Normalize all transactions
     seen_ids = set()
