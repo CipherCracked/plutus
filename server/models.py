@@ -19,11 +19,12 @@ class Transaction(BaseModel):
     status: str
     payment_method: str
     coins_earned: int
+    user_id: str
 
 
 class CoinBalance(BaseModel):
     balance: int
-    username: str
+    user_id: str
     total_earned: int
     total_redeemed: int
 
@@ -43,7 +44,7 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     token: str
-    user_profile_id: int
+    user_id: str
 
 
 class RegisterRequest(BaseModel):
@@ -53,7 +54,7 @@ class RegisterRequest(BaseModel):
 
 class RegisterResponse(BaseModel):
     token: str
-    user_profile_id: int
+    user_id: str
 
 
 class RedeemRequest(BaseModel):

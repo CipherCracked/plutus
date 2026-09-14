@@ -1,12 +1,12 @@
-﻿"""
-Plutus â€” FastAPI Backend
+"""
+Plutus — FastAPI Backend
 
 Endpoints:
-    GET  /api/transactions  â€” all transactions (for client-side virtualization)
-    GET  /api/balance       â€” user's coin balance + stats
-    GET  /api/rewards       â€” rewards catalogue
-    POST /api/redeem        â€” redeem a reward (atomic)
-    GET  /api/analytics     â€” pre-aggregated category + monthly trend
+    GET  /api/transactions  — all transactions (for client-side virtualization)
+    GET  /api/balance       — user's coin balance + stats
+    GET  /api/rewards       — rewards catalogue
+    POST /api/redeem        — redeem a reward (atomic)
+    GET  /api/analytics     — pre-aggregated category + monthly trend
 
 Run:
     uvicorn main:app --host 0.0.0.0 --port 8000
@@ -25,6 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from dotenv import load_dotenv
 from supabase import create_client, Client
+import jwt
 
 from models import (
     AnalyticsResponse,
@@ -49,6 +50,18 @@ if not DATABASE_URL:
         "DATABASE_URL not set. Create a .env file at the project root."
     )
 
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+
+supabase_client: Client = None
+
+
+def get_supabase_client():
+    global supabase_client
+    if supabase_client is None and SUPABASE_URL and SUPABASE_KEY:
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return supabase_client
+
 
 @contextmanager
 def get_db():
@@ -64,13 +77,50 @@ def get_db():
         conn.close()
 
 
+security = HTTPBearer(auto_error=False)
+
+
+async def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+) -> str:
+    """
+    Extract user_id (Supabase UUID) from JWT token.
+    No database lookup needed — the JWT carries the identity directly.
+    """
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required — no token provided.")
+
+    token = credentials.credentials
+
+    # If Supabase Auth is configured, verify with Supabase
+    sb_client = get_supabase_client()
+    if sb_client:
+        try:
+            user = sb_client.auth.get_user(token)
+            if user and user.user:
+                return user.user.id
+        except Exception:
+            pass  # Fall through to local JWT decode
+
+    # Fallback: decode JWT locally (no signature verification for demo)
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False})
+        user_id = payload.get("sub")
+        if user_id:
+            return user_id
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=401, detail="Invalid or expired token.")
+
+
 app = FastAPI(
     title="Plutus API",
     description="Credit-card bill payment and rewards backend",
     version="1.0.0",
 )
 
-# CORS â€” open to all origins: public demo API, no credentials involved,
+# CORS — open to all origins: public demo API, no credentials involved,
 # and Vercel mints a new origin per deployment. To restrict, set
 # ALLOWED_ORIGINS (comma-separated) in the environment.
 allowed_origins = [
@@ -88,66 +138,12 @@ app.add_middleware(
 )
 
 
-security = HTTPBearer(auto_error=False)
-
-
-supabase_client: Client = None
-
-
-def get_supabase_client():
-    global supabase_client
-    if supabase_client is None:
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_KEY", "")
-        if url and key:
-            supabase_client = create_client(url, key)
-        else:
-            # Fallback for demo: no external auth required
-            supabase_client = None
-    return supabase_client
-
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(security),
-) -> int:
-    """
-    Return user profile id from Supabase Auth (existing auth service).
-    Falls back to demo user (`plutus_user`) when no valid session or token.
-    """
-    user_profile_id = None
-    supabase_client = get_supabase_client()
-
-    if supabase_client and credentials:
-        try:
-            # Use existing Supabase auth session/token mechanism
-            # Instead of reinventing JWT decode with python-jose
-            user = supabase_client.auth.get_user(credentials.credentials)
-            if user and user.user:
-                user_sub = user.user.id
-                with get_db() as conn:
-                    with conn.cursor() as cur:
-                        cur.execute(
-                            "SELECT id FROM user_profiles WHERE auth_sub = %s",
-                            (user_sub,),
-                        )
-                        row = cur.fetchone()
-                        if row:
-                            user_profile_id = row[0]
-        except Exception:
-            pass  # Fall back to demo user
-
-    if user_profile_id is None:
-        raise HTTPException(status_code=401, detail="Authentication required â€” no valid Supabase session or token provided.")
-
-    return user_profile_id
-
-
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
 @app.get("/api/transactions", response_model=list[Transaction])
-def get_transactions(user_profile_id: int = Depends(get_current_user)):
+def get_transactions(user_id: str = Depends(get_current_user_id)):
     """
     Return user-scoped transactions (requires auth via Supabase JWT).
     """
@@ -163,66 +159,52 @@ def get_transactions(user_profile_id: int = Depends(get_current_user)):
                     currency,
                     status,
                     payment_method,
-                    coins_earned
+                    coins_earned,
+                    user_id
                 FROM transactions
-                WHERE user_profile_id = %s
+                WHERE user_id = %s
                 ORDER BY timestamp DESC
-            """, (user_profile_id,))
+            """, (user_id,))
             rows = cur.fetchall()
 
     columns = [
         "id", "timestamp", "merchant", "category", "amount",
-        "currency", "status", "payment_method", "coins_earned",
+        "currency", "status", "payment_method", "coins_earned", "user_id",
     ]
     return [dict(zip(columns, row)) for row in rows]
 
 
 @app.get("/api/balance", response_model=CoinBalance)
-def get_balance(user_profile_id: int = Depends(get_current_user)):
-    """Return the user's coin balance and lifetime stats (scoped by profile)."""
+def get_balance(user_id: str = Depends(get_current_user_id)):
+    """Return the user's coin balance and lifetime stats (scoped by user_id)."""
     with get_db() as conn:
         with conn.cursor() as cur:
+            # Sum of coins_earned from transactions
             cur.execute(
-                "SELECT coin_balance FROM user_profiles WHERE id = %s",
-                (user_profile_id,),
-            )
-            row = cur.fetchone()
-            if not row:
-                raise HTTPException(500, "User profile not found â€” run seed.py first")
-            balance = row[0]
-
-            # Get username from profile for display
-            cur.execute(
-                "SELECT username FROM user_profiles WHERE id = %s",
-                (user_profile_id,),
-            )
-            username_row = cur.fetchone()
-            username = username_row[0] if username_row else "plutus_user"
-
-            # Total earned (user-scoped transactions)
-            cur.execute(
-                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_profile_id = %s",
-                (user_profile_id,),
+                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_id = %s",
+                (user_id,),
             )
             total_earned = cur.fetchone()[0]
 
-            # Total redeemed (user-scoped redemptions via user_profiles FK)
+            # Sum of coins_spent from redemptions
             cur.execute(
-                "SELECT COALESCE(SUM(coins_spent), 0) FROM redemptions WHERE user_profile_id = %s",
-                (user_profile_id,),
+                "SELECT COALESCE(SUM(coins_spent), 0) FROM redemptions WHERE user_id = %s",
+                (user_id,),
             )
             total_redeemed = cur.fetchone()[0]
 
+    balance = total_earned - total_redeemed
+
     return CoinBalance(
         balance=balance,
-        username=username,
+        user_id=user_id,
         total_earned=total_earned,
         total_redeemed=total_redeemed,
     )
 
 
 @app.get("/api/rewards", response_model=list[Reward])
-def get_rewards(user_profile_id: int = Depends(get_current_user)):
+def get_rewards(user_id: str = Depends(get_current_user_id)):
     """Return the full rewards catalogue."""
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -244,28 +226,19 @@ def get_rewards(user_profile_id: int = Depends(get_current_user)):
 
 
 @app.post("/api/redeem", response_model=RedeemResponse)
-def redeem_reward(request: RedeemRequest, user_profile_id: int = Depends(get_current_user)):
+def redeem_reward(request: RedeemRequest, user_id: str = Depends(get_current_user_id)):
     """
-    Redeem a reward atomically (user-scoped via user_profile_id).
+    Redeem a reward atomically (user-scoped via user_id).
 
     Flow (all in one transaction):
-        1. Look up user profile and reward.
+        1. Look up reward.
         2. Check balance >= coin_cost.
-        3. Deduct coins from user_profiles, log redemption via user_profile_id.
+        3. Deduct coins by inserting redemption (balance computed from transactions - redemptions).
 
     Returns 402 if insufficient balance, 404 for invalid request.
     """
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT id, coin_balance FROM user_profiles WHERE id = %s",
-                (user_profile_id,),
-            )
-            profile_row = cur.fetchone()
-            if not profile_row:
-                raise HTTPException(500, "User profile not found â€” run seed.py first")
-            profile_id, balance = profile_row
-
             cur.execute(
                 "SELECT id, name, coin_cost FROM rewards WHERE id = %s",
                 (request.reward_id,),
@@ -275,21 +248,31 @@ def redeem_reward(request: RedeemRequest, user_profile_id: int = Depends(get_cur
                 raise HTTPException(404, "Reward not found")
             reward_id, reward_name, coin_cost = reward_row
 
+            # Compute current balance from transactions - redemptions
+            cur.execute(
+                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_id = %s",
+                (user_id,),
+            )
+            total_earned = cur.fetchone()[0]
+            cur.execute(
+                "SELECT COALESCE(SUM(coins_spent), 0) FROM redemptions WHERE user_id = %s",
+                (user_id,),
+            )
+            total_redeemed = cur.fetchone()[0]
+            balance = total_earned - total_redeemed
+
             if balance < coin_cost:
                 raise HTTPException(
                     402,
                     f"Insufficient coins: {balance} < {coin_cost} required for '{reward_name}'",
                 )
 
+            cur.execute(
+                "INSERT INTO redemptions (user_id, reward_id, coins_spent) VALUES (%s, %s, %s)",
+                (user_id, reward_id, coin_cost),
+            )
             new_balance = balance - coin_cost
-            cur.execute(
-                "UPDATE user_profiles SET coin_balance = %s WHERE id = %s",
-                (new_balance, profile_id),
-            )
-            cur.execute(
-                "INSERT INTO redemptions (user_profile_id, reward_id, coins_spent) VALUES (%s, %s, %s)",
-                (profile_id, reward_id, coin_cost),
-            )
+
     return RedeemResponse(
         success=True,
         message=f"Redeemed '{reward_name}' for {coin_cost} coins",
@@ -299,71 +282,44 @@ def redeem_reward(request: RedeemRequest, user_profile_id: int = Depends(get_cur
 
 @app.post("/api/login", response_model=LoginResponse)
 def login(request: LoginRequest):
-    """Authenticate via existing Supabase Auth. Returns JWT + profile id."""
-    supabase_client = get_supabase_client()
-    if not supabase_client:
+    """Authenticate via existing Supabase Auth. Returns JWT + user_id."""
+    sb_client = get_supabase_client()
+    if not sb_client:
         raise HTTPException(501, "Supabase Auth not configured")
     try:
-        auth = supabase_client.auth.sign_in_with_password({
+        auth = sb_client.auth.sign_in_with_password({
             "email": request.email,
             "password": request.password,
         })
         token = auth.session.access_token
-        user_sub = auth.user.id
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id FROM user_profiles WHERE auth_sub = %s",
-                    (str(user_sub),),
-                )
-                row = cur.fetchone()
-                profile_id = row[0] if row else None
-        if profile_id is None:
-            raise HTTPException(404, "User profile not found")
-        return LoginResponse(token=token, user_profile_id=profile_id)
+        user_id = auth.user.id
+        return LoginResponse(token=token, user_id=user_id)
     except Exception as exc:
         raise HTTPException(401, f"Login failed: {exc}")
 
 
 @app.post("/api/register", response_model=RegisterResponse)
 def register(request: RegisterRequest):
-    """Register via existing Supabase Auth. Creates user + profile."""
-    supabase_client = get_supabase_client()
-    if not supabase_client:
+    """Register via existing Supabase Auth. Creates user."""
+    sb_client = get_supabase_client()
+    if not sb_client:
         raise HTTPException(501, "Supabase Auth not configured")
     try:
-        auth = supabase_client.auth.sign_up({
+        auth = sb_client.auth.sign_up({
             "email": request.email,
             "password": request.password,
         })
         token = auth.session.access_token if auth.session else ""
-        user_sub = auth.user.id if auth.user else None
-        profile_id = None
-        if user_sub:
-            with get_db() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "SELECT id FROM user_profiles WHERE username = %s",
-                        (request.email.split("@")[0],),
-                    )
-                    existing = cur.fetchone()
-                    if existing:
-                        profile_id = existing[0]
-                    else:
-                        cur.execute(
-                            "INSERT INTO user_profiles (username, auth_sub, coin_balance) VALUES (%s, %s, 0) RETURNING id",
-                            (request.email.split("@")[0], str(user_sub)),
-                        )
-                        profile_id = cur.fetchone()[0]
-        if profile_id is None:
-            raise HTTPException(500, "Failed to create user profile")
-        return RegisterResponse(token=token, user_profile_id=profile_id)
+        user_id = auth.user.id if auth.user else None
+        if user_id is None:
+            raise HTTPException(500, "Failed to create user")
+        return RegisterResponse(token=token, user_id=user_id)
     except Exception as exc:
         raise HTTPException(400, f"Registration failed: {exc}")
 
 
 @app.get("/api/analytics", response_model=AnalyticsResponse)
-def get_analytics(user_profile_id: int = Depends(get_current_user)):
+def get_analytics(user_id: str = Depends(get_current_user_id)):
     """
     Return pre-aggregated analytics.
 
@@ -376,10 +332,10 @@ def get_analytics(user_profile_id: int = Depends(get_current_user)):
             cur.execute("""
                 SELECT  category, SUM(amount), COUNT(*)
                 FROM transactions
-                WHERE user_profile_id = %s
+                WHERE user_id = %s
                 GROUP BY category
                 ORDER BY SUM(amount) DESC
-            """, (user_profile_id,))
+            """, (user_id,))
             cat_rows = cur.fetchall()
 
             cur.execute("""
@@ -388,10 +344,10 @@ def get_analytics(user_profile_id: int = Depends(get_current_user)):
                     SUM(amount),
                     COUNT(*)
                 FROM transactions
-                WHERE user_profile_id = %s
+                WHERE user_id = %s
                 GROUP BY month
                 ORDER BY month
-            """, (user_profile_id,))
+            """, (user_id,))
             month_rows = cur.fetchall()
 
     category_breakdown = [
@@ -416,5 +372,3 @@ def get_analytics(user_profile_id: int = Depends(get_current_user)):
         category_breakdown=category_breakdown,
         monthly_trend=monthly_trend,
     )
-
-

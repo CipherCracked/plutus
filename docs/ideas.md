@@ -8,3 +8,12 @@ Add an AI that answers questions based on user data: "What are my expenses?", "H
 
 ## 3. Encryption / data privacy
 Investigate whether Supabase encrypts data at rest or if we need application-level encryption. Check: does Supabase show us decrypted data via SQL? If not, what encryption options exist (`pgcrypto`, client-side encryption)? Uncertain if this is a real gap or already handled by Supabase defaults.
+
+## 4. Database access layer: psycopg2 vs supabase-py vs RLS
+Current: raw `psycopg2` over `DATABASE_URL` — manual `WHERE user_id = %s` in every query.
+
+Options to evaluate later:
+- **supabase-py (PostgREST)**: HTTP-based, auto-includes auth context, realtime subscriptions. Trade-off: HTTP overhead, less SQL control, extra dependency.
+- **RLS (Row Level Security)**: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY; CREATE POLICY USING (user_id = auth.uid())`. Server uses `supabase_client` with user's JWT — DB enforces isolation, no middleware needed. Trade-off: requires service role key for server ops (seed, admin), RLS policy maintenance, mental model shift to "policy-driven" security.
+
+Not a priority now — current psycopg2 approach works, explicit, zero magic. Revisit if scaling or realtime needs emerge.

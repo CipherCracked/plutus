@@ -37,7 +37,8 @@ load_dotenv(Path(__file__).parent / ".env")
 DATA_FILE = Path(__file__).parent.parent / "transactions.json"
 SCHEMA_FILE = Path(__file__).parent / "schema.sql"
 
-DEFAULT_USER = "plutus_user"
+DEFAULT_USER_EMAIL = "plutus_user@plutus.local"
+DEFAULT_USER_PASSWORD = "plutus_demo"
 
 # Coin earning: 1 coin per ₹100 spent, capped at 50 per transaction
 COIN_RATE = 100        # 1 coin per 100 rupees
@@ -178,7 +179,7 @@ def create_schema(conn):
 def seed_transactions(conn):
     """
     Load transactions.json, normalize data, and bulk-insert into the
-    transactions table. Returns the coin_balance for the default user.
+    transactions table. Returns the user_id (Supabase UUID) for the default user.
     """
     with open(DATA_FILE, "r") as f:
         raw_data = json.load(f)
@@ -189,36 +190,40 @@ def seed_transactions(conn):
             cur.execute("DROP TABLE IF EXISTS transactions CASCADE")
             cur.execute("DROP TABLE IF EXISTS redemptions CASCADE")
             cur.execute("DROP TABLE IF EXISTS rewards CASCADE")
-            cur.execute("DROP TABLE IF EXISTS user_profiles CASCADE")
 
     # Create fresh schema
     create_schema(conn)
 
-    # Insert default profile (simplified: identity + isolation in one row)
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO user_profiles (username, auth_sub, coin_balance) VALUES (%s, %s, %s) RETURNING id",
-                (DEFAULT_USER, DEFAULT_USER, 0),
-            )
-            profile_row = cur.fetchone()
-            user_profile_id = profile_row[0]
-
-    # Seed default user into Supabase Auth (so login works out of the box)
+    # Seed default user into Supabase Auth FIRST (so its UUID can be used as user_id)
     supabase_url = os.getenv("SUPABASE_URL", "")
     supabase_key = os.getenv("SUPABASE_KEY", "")
+    user_id = None
     if supabase_url and supabase_key:
         try:
             sb_client = create_client(supabase_url, supabase_key)
-            sb_client.auth.sign_up({
-                "email": f"{DEFAULT_USER}@plutus.local",
-                "password": "plutus_demo",
-            })
-            print(f"✓ Default user '{DEFAULT_USER}' seeded in Supabase Auth")
+            try:
+                auth = sb_client.auth.sign_up({
+                    "email": DEFAULT_USER_EMAIL,
+                    "password": DEFAULT_USER_PASSWORD,
+                })
+            except Exception:
+                # User already exists from a prior seed run — sign in to get the UUID
+                auth = sb_client.auth.sign_in_with_password({
+                    "email": DEFAULT_USER_EMAIL,
+                    "password": DEFAULT_USER_PASSWORD,
+                })
+            if auth and auth.user and auth.user.id:
+                user_id = str(auth.user.id)
+                print(f"✓ Default user seeded in Supabase Auth (id={user_id})")
+            else:
+                print("! Note: Supabase Auth returned no user — cannot seed transactions")
+                return None
         except Exception as exc:
-            print(f"! Note: Supabase Auth seeding skipped or exists ({exc})")
+            print(f"! Note: Supabase Auth failed ({exc}) — cannot seed transactions")
+            return None
     else:
-        print("! Note: SUPABASE_URL / SUPABASE_KEY not set — skipping Supabase Auth seeding")
+        print("! Note: SUPABASE_URL / SUPABASE_KEY not set — cannot seed transactions")
+        return None
 
     # Normalize all transactions
     seen_ids = set()
@@ -272,14 +277,14 @@ def seed_transactions(conn):
             status,
             txn.get("payment_method") or "Unknown",
             coins,
-            user_profile_id,
+            user_id,
         ))
 
     # Bulk insert
     insert_sql = """
         INSERT INTO transactions (
             id, timestamp, merchant, category, amount,
-            currency, status, payment_method, coins_earned, user_profile_id
+            currency, status, payment_method, coins_earned, user_id
         ) VALUES %s
     """
     with conn:
@@ -293,21 +298,7 @@ def seed_transactions(conn):
         f"{skipped_bad_amt} bad amounts)"
     )
 
-    # Compute and set user's coin balance
-    with conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT COALESCE(SUM(coins_earned), 0) FROM transactions WHERE user_profile_id = %s",
-                (user_profile_id,),
-            )
-            balance = cur.fetchone()[0]
-            cur.execute(
-                "UPDATE user_profiles SET coin_balance = %s WHERE id = %s",
-                (balance, user_profile_id),
-            )
-
-    print(f"✓ Default user '{DEFAULT_USER}' created with balance: {balance} coins")
-    return user_profile_id
+    return user_id
 
 
 def seed_rewards(conn):
@@ -343,9 +334,13 @@ def main():
 
     conn = get_connection()
     try:
-        seed_transactions(conn)
-        seed_rewards(conn)
-        print("\n✅ Seed complete. Database is ready.")
+        user_id = seed_transactions(conn)
+        if user_id:
+            seed_rewards(conn)
+            print(f"\n✅ Seed complete. Database is ready. Default user_id: {user_id}")
+        else:
+            print("\n❌ Seed incomplete — user_id not available")
+            sys.exit(1)
     finally:
         conn.close()
 

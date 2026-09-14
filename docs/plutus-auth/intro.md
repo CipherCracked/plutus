@@ -67,9 +67,9 @@ How can Plutus become less isolated and more valuable as a standalone project?
 - `docs/plutus-expansion/` retains multi-user auth spec, middleware design, and correction notes.
 
 ## KISS / Design simplification applied (post-auth-door + post-expansion)
-- `users` identity table removed. `user_profiles` now holds identity (`username`, `auth_sub`) + isolation (`coin_balance`).
-- Schema (`server/schema.sql`): `user_profiles` has `username`, `auth_sub`; `transactions.user_profile_id` FK; `redemptions.user_profile_id` FK. No `users` table.
-- Middleware (`main.py`): `JWT.sub` (`auth_sub`) → `user_profiles.id` directly. No identity/isolation separation hop.
-- Seed (`seed.py`): inserts single `user_profiles` row (`username`, `auth_sub`, `coin_balance`).
-- Endpoints (`main.py`): `/api/login`, `/api/register`, protected routes filter by `user_profile_id`.
-- Docs (`plutus-expansion/ipds/multi-user-auth.md`, `itds/auth-middleware.md`, `itds/auth-middleware-correction.md`) describe the original separated design; simplification supersedes that design (single profile = identity + isolation).
+- `user_profiles` table removed entirely. Supabase Auth UUID used directly as user identifier.
+- Schema (`server/schema.sql`): `transactions.user_id` (TEXT, Supabase UUID), `redemptions.user_id` (TEXT, Supabase UUID). No `user_profiles`, no `auth_sub`, no integer FKs.
+- Middleware (`main.py`): `get_current_user_id` extracts `sub` from JWT directly. No database lookup — the JWT carries the identity.
+- Seed (`seed.py`): signs up user in Supabase Auth, uses returned UUID as `user_id` for transactions.
+- Endpoints (`main.py`): `/api/login`, `/api/register` return `user_id` (UUID). Protected routes filter by `user_id` directly.
+- Docs (`plutus-expansion/ipds/multi-user-auth.md`, `itds/auth-middleware.md`, `itds/auth-middleware-correction.md`) describe the intermediate `user_profiles` design; current implementation supersedes that — direct UUID, no mapping table.
