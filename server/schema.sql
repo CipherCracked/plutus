@@ -2,16 +2,18 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS transactions (
-    id              TEXT PRIMARY KEY,
-    timestamp       TIMESTAMP NOT NULL,
-    merchant        TEXT NOT NULL,
-    category        TEXT NOT NULL,
-    amount          NUMERIC(14,2) NOT NULL,
-    currency        TEXT NOT NULL DEFAULT 'INR',
-    status          TEXT NOT NULL,
-    payment_method  TEXT NOT NULL,
-    coins_earned    INTEGER NOT NULL DEFAULT 0,
-    user_id         TEXT NOT NULL
+    id                  TEXT PRIMARY KEY,
+    timestamp           TIMESTAMP NOT NULL,
+    merchant            TEXT NOT NULL,
+    category            TEXT NOT NULL,
+    amount              NUMERIC(14,2) NOT NULL,
+    currency            TEXT NOT NULL DEFAULT 'INR',
+    status              TEXT NOT NULL,
+    payment_method      TEXT NOT NULL,
+    coins_earned        INTEGER NOT NULL DEFAULT 0,
+    user_id             TEXT NOT NULL,
+    transaction_type    TEXT NOT NULL DEFAULT 'type_1_payment'
+        CHECK (transaction_type IN ('type_1_payment', 'type_2_manual'))
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);

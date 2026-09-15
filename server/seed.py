@@ -278,13 +278,14 @@ def seed_transactions(conn):
             txn.get("payment_method") or "Unknown",
             coins,
             user_id,
+            "type_1_payment",  # all seeded transactions are Type 1 (historical payments)
         ))
 
     # Bulk insert
     insert_sql = """
         INSERT INTO transactions (
             id, timestamp, merchant, category, amount,
-            currency, status, payment_method, coins_earned, user_id
+            currency, status, payment_method, coins_earned, user_id, transaction_type
         ) VALUES %s
     """
     with conn:

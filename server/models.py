@@ -20,6 +20,7 @@ class Transaction(BaseModel):
     payment_method: str
     coins_earned: int
     user_id: str
+    transaction_type: str
 
 
 class CoinBalance(BaseModel):
