@@ -17,3 +17,10 @@ Options to evaluate later:
 - **RLS (Row Level Security)**: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY; CREATE POLICY USING (user_id = auth.uid())`. Server uses `supabase_client` with user's JWT — DB enforces isolation, no middleware needed. Trade-off: requires service role key for server ops (seed, admin), RLS policy maintenance, mental model shift to "policy-driven" security.
 
 Not a priority now — current psycopg2 approach works, explicit, zero magic. Revisit if scaling or realtime needs emerge.
+
+## 5. Type 1 transaction origin (deferred)
+How do app-initiated payment transactions (Type 1) get created?
+- In-app 'Pay Bill' flow: user clicks → transaction created with SUCCESS, coins earned
+- External webhook/integration: bank/payment gateway posts to webhook
+- Both paths supported
+Deferred until payment integration is scoped. For now, seed data represents Type 1 (historical payments).

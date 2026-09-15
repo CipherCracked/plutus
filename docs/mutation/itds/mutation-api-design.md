@@ -1,0 +1,16 @@
+# Mutation API Design — ITDs
+
+| ITD 1 - "Use POST/PUT/DELETE /api/transactions with server-generated UUIDs, full-replace PUT, and type-aware validation." |  |
+| :---- | :---- |
+| **THE PROBLEM** | The mutation feature needs three endpoints: create, update, delete transactions. The API contracts must define: HTTP methods, paths, request/response bodies, ID generation strategy (client vs server), whether update is full-replace (PUT) or partial (PATCH), and **type-aware validation** (Type 1 vs Type 2 field permissions). These contracts are shared between backend (`models.py`) and frontend (`client/src/lib/api.ts`). |
+| **OPTIONS CONSIDERED (Decision in bold)** | |
+| **Option 1** | **POST `/api/transactions` (create Type 2 only), PUT `/api/transactions/{id}` (full replace, type-aware), DELETE `/api/transactions/{id}` (type-aware). Server generates UUID v4 for `id` on create. Client does not provide ID. Request body includes `transaction_type` (defaults to `type_2_manual` on create).** | **REASONING** |
+| **Frontend** | Frontend calls `api.post('/transactions', data)` without ID. `data` includes `transaction_type: 'type_2_manual'` (or omitted, defaults server-side). Response returns created transaction with server-generated ID and computed `coins_earned`. For edit, frontend sends full transaction object (all fields) to PUT. Backend validates type-aware field permissions. For delete, frontend calls `api.delete('/transactions/{id}')`. Backend returns 403 for Type 1. | **TRADEOFFS** |
+| **Backend** | `uuid.uuid4()` on insert. PUT validates all required fields present (full replace) AND enforces type-aware field permissions (see `mutation-type1-semi-immutable.md`). DELETE checks type: Type 1 → 403, Type 2 → proceed. Simpler than handling client-provided IDs with collision detection. | **NOTES** |
+| **Database** | `transactions.id` is `TEXT PRIMARY KEY`. Server-generated UUID ensures uniqueness without round-trip. `transaction_type` column with CHECK constraint. | |
+| **Idempotency** | POST is not idempotent (each call creates new). PUT is idempotent (full replace). DELETE is idempotent. | |
+| **Option 2** | Client generates UUID v4, sends in POST body. Server uses provided ID or rejects on collision (409). | |
+| **Option 3** | PATCH for partial updates (only send changed fields). PUT for full replace. | |
+| **Option 4** | Client provides custom ID string (e.g., `txn_123`). Server validates format. | |
+|  | Client-provided IDs add collision risk (409 handling), require frontend UUID dependency, complicate seed idempotency (seeded IDs are strings like `TXN2025001623`). Server-generated UUIDs avoid all this. PATCH adds partial-update complexity (merge logic, validation of partial objects) — full-replace PUT is simpler and matches the `Transaction` model which has all fields required. Type-aware validation is implemented in shared validation module, not in HTTP method choice. | |
+|  | References: `docs/mutation/intro.md` (Open questions 1, 2), `docs/mutation/ipds/mutation-transaction-types.md`, `docs/mutation/ipds/mutation-type1-semi-immutable.md`, `server/models.py` (Transaction model), `client/src/lib/api.ts` (api client). | |
